@@ -3,6 +3,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "baseUrl": "./",
     "outDir": "./dist/out-tsc",
     "strict": true,
     "noImplicitOverride": true,
@@ -11,7 +12,10 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "ng-inapp-dev-tool": [
-        "./dist/ng-inapp-dev-tool"
+        "dist/ng-inapp-dev-tool"
+      ],
+      "ng-inapp-dev-tool/*": [
+        "dist/ng-inapp-dev-tool/*"
       ]
     },
     "skipLibCheck": true,
