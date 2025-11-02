@@ -1,59 +1,39 @@
-# AngularDevToolWs
+# Angular DevTools: Making Angular Development Easier 🚀
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.13.
+## ✨ Our Goal: Better Developer Tools for Angular
 
-## Development server
+We were inspired by the great developer experience of the **Nuxt.js DevTools**. This project brings a powerful, built-in **developer tool** right into your running Angular applications.
 
-To start a local development server, run:
+Angular is strong, but sometimes development can feel slow. Our purpose is simple: to help you build Angular apps faster and more effectively. This tool will give you instant, helpful information to make Angular much more **developer-friendly**.
 
-```bash
-ng serve
-```
+We think key debugging and analysis tools should be available exactly where you need them—inside your app.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## 💡 Key Features (Planned)
 
-## Code scaffolding
+This devtool will give you instant information about different parts of your Angular app:
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+- **Source Code Navigation (Open in Editor):** Click any component in your running app to instantly open its source file in your code editor. This will help you find and edit code much faster.
 
-```bash
-ng generate component component-name
-```
+- **Component Explorer:** See a visual map of your components. You can inspect their settings (inputs/outputs) and watch how Angular updates them in real-time.
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+- **State & Store Management:** A dedicated window to check and follow how your state management works (like signals, RxJS, NGRX, or NGXS). View and trace state changes easily.
 
-```bash
-ng generate --help
-```
+- **Assets Explorer:** A tool to view all the images, fonts, and media files in your project and see where they are being used.
 
-## Building
+- **Open Graph & SEO Setup:** Check and manage important metadata settings for social media sharing (Open Graph) and search engine optimization (SEO) directly in the app.
 
-To build the project run:
+- **Module Discovery & Install:** Easily search for and install popular third-party Angular libraries (like NGRX, Material, etc.) right from the devtool interface.
 
-```bash
-ng build
-```
+- **Performance Monitoring:** Find slow spots, check how long things take to render, and spot when Angular checks for changes too often.
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+- **Module & Route Graph:** View an interactive map of your application's routes and all the modules that are loaded.
 
-## Running unit tests
+- **Quick Actions:** Use common Angular commands (like `ng generate`) or helpful tools (like clearing component state) directly from the in-app interface.
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+## 🛠️ Getting Started
 
-```bash
-ng test
-```
+This repository holds the main code for the devtool. Here is how to use it in your Angular application:
 
-## Running end-to-end tests
+### 1. Install It
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Detailed installation steps will be added here once the tool is ready to publish.
