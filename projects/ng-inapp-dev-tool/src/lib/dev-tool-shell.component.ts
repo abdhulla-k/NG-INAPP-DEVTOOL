@@ -11,75 +11,126 @@ import { CommonModule } from '@angular/common';
 
 import { NG_INAPP_DEV_TOOL_PLUGINS, Plugin } from './plugin.token';
 import { DraggableDirective, Position } from './draggable.directive';
+import { InspectorOverlayComponent } from './inspector-overlay.component';
 
 @Component({
     selector: 'ng-inapp-dev-tool-shell',
     standalone: true,
-    imports: [CommonModule, DraggableDirective],
+    imports: [CommonModule, DraggableDirective, InspectorOverlayComponent],
     template: `
-    <div
-      #draggableWrapper
-      class="draggable-wrapper"
-      draggable
-      (positionChange)="onPositionChange($event)"
-    >
-      @if (!hidden) {
-      <div #shellContainer class="shell-container">
-        <main>
-            <div class="plugin-container">
-                <h1>ANGULAR&nbsp;DEV&nbsp;TOOL</h1>
-                <p>coming&nbsp;soon...</p>
-            </div>
-        </main>
-      </div>
-      }
+        @if (isInspecting) {
+        <ng-inspector-overlay (inspectEnd)="toggleInspector()" />
+        }
 
-      <button class="floating-button" (click)="toggle()">
-        <p>DEV TOOL</p>
-        </button>
-    </div>
+        <div
+        #draggableWrapper
+        class="draggable-wrapper"
+        draggable
+        (positionChange)="onPositionChange($event)"
+        >
+            @if (!hidden) {
+                <div #shellContainer class="shell-container">
+                    <main>
+                        <div class="plugin-container">
+                            <h1>ANGULAR&nbsp;DEV&nbsp;TOOL</h1>
+                            <p>coming&nbsp;soon...</p>
+                        </div>
+                    </main>
+                </div>
+            }
+
+            <div class="button-container">
+                <button
+                    class="control-button inspector-button"
+                    [class.active]="isInspecting"
+                    (click)="toggleInspector(); $event.stopPropagation()"
+                    title="Inspect Components"
+                >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    height="24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <circle cx="12" cy="12" r="10" />
+
+                    <circle cx="12" cy="12" r="1" />
+
+                    <line x1="12" y1="2" x2="12" y2="4" />
+                    <line x1="12" y1="20" x2="12" y2="22" />
+                    <line x1="2" y1="12" x2="4" y2="12" />
+                    <line x1="20" y1="12" x2="22" y2="12" />
+                </svg>
+                </button>
+
+                <button class="floating-button" (click)="toggle()">
+                <p>DEV TOOL</p>
+                </button>
+            </div>
+        </div>
   `,
     styles: [
         `
-    .plugin-container{
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        text-align: center;
-        padding: 20px;
+        .button-container {
+            display: flex;
+            align-items: center;
+            background: black;
+            padding: 0px 4px;
+            border-radius: 20px;
+        }
+        .inspector-button {
+            background: transparent;
+            border: none;
+            color: white;
+        }
 
-    }
-    .draggable-wrapper {
-        font-family: , sans-serif;
-        position: fixed; 
-        bottom: 20px; 
-        right: 20px; 
-        z-index: 9998; 
-    }
-    .floating-button { 
-        padding: 0px 15px;
-        border-radius: 13px; 
-        color: white;
-        background-color: #000000ff;
-        border: none;
-        font-size: 14px; 
-        cursor: pointer; 
-        z-index: 10000;
-    }
-    .shell-container {
-      position: fixed;
-      background: #f8f8f8;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-      z-index: 9999;
-    }
-  `,
+        .inspector-button:hover {
+            color: #f98eee;
+            cursor: pointer;
+        }
+
+        .plugin-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: 20px;
+        }
+        .draggable-wrapper {
+            font-family: , sans-serif;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9998;
+        }
+        .floating-button {
+            padding: 0px 15px;
+            border-radius: 13px;
+            color: white;
+            background-color: #000000ff;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 10000;
+        }
+        .shell-container {
+            position: fixed;
+            background: #f8f8f8;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+        }
+    `,
     ],
 })
-
 export class DevToolShellComponent implements OnInit {
     // Get all references from template
     @ViewChild(DraggableDirective, { static: true })
@@ -97,6 +148,9 @@ export class DevToolShellComponent implements OnInit {
 
     // Set devtool detail/plugin panel closed for default
     hidden = true;
+
+    // To manage inspecting ui and inspecting mode
+    isInspecting = false;
 
     // We want to notify angular the changes mannually.
     // So inject change detectionRef to notify angular the events
@@ -137,6 +191,19 @@ export class DevToolShellComponent implements OnInit {
                 this.wrapperElement.nativeElement.getBoundingClientRect();
             this.onPositionChange({ x: currentRect.left, y: currentRect.top });
         });
+    }
+
+    toggleInspector(): void {
+        this.isInspecting = !this.isInspecting;
+
+        // Manually tell Angular to check for changes
+        this.cdr.detectChanges();
+
+        // Close the panel weather user started inspecting now
+        if (this.isInspecting) {
+            this.hidden = true;
+            this.cdr.detectChanges();
+        }
     }
 
     onPositionChange(buttonPos: Position): void {
