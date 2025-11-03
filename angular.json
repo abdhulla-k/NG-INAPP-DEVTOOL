@@ -99,7 +99,7 @@
           "defaultConfiguration": "production"
         },
         "serve": {
-          "builder": "@angular-devkit/build-angular:dev-server",
+          "builder": "./ng-inapp-dev-tool-builder:custom-serve",
           "configurations": {
             "production": {
               "buildTarget": "test-app:build:production"

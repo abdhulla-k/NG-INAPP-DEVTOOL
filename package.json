@@ -21,6 +21,8 @@
     "@angular/router": "^19.2.0",
     "@angular/ssr": "^19.2.19",
     "express": "^4.18.2",
+    "ng-inapp-dev-tool-builder": "file:ng-inapp-dev-tool-builder",
+    "ng-inapp-dev-tool-vite": "file:ng-inapp-dev-tool-vite",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"

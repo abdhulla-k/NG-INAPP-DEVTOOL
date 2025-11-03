@@ -1,0 +1,8 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "$id": "ng-inapp-dev-tool-custom-serve",
+  "title": "In-App DevTool Custom Serve Builder",
+  "type": "object",
+  "properties": {},
+  "description": "This schema is a placeholder. We will pass all options through to the original dev-server."
+}

@@ -42,3 +42,8 @@ testem.log
 Thumbs.db
 
 .vscode
+
+#Custom
+/dist/
+node_modules
+dist

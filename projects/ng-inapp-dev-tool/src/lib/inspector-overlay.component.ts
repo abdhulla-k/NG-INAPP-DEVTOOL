@@ -105,7 +105,37 @@ export class InspectorOverlayComponent {
         ) as HTMLElement;
         this.hostElement.style.display = 'block';
 
+        const sourcePath = this.findComponentSource(clickedElement);
+
+        if (sourcePath) {
+            console.log('Found component source:', sourcePath);
+
+            // 2. Make the request to our local editor server
+            const endpoint = 'http://localhost:4201/__open-in-editor';
+            const url = `${endpoint}?file=${encodeURIComponent(sourcePath)}`;
+
+            fetch(url).then(res => {
+                if (!res.ok) {
+                    console.error(`[DevTools] Failed to open file. Server responded with status ${res.status}`);
+                }
+            });
+
+        } else {
+            console.log('Could not find an Angular component source for this element.');
+        }
+
         // Emit to close inpect mode from shell component
         this.inspectEnd.emit();
+    }
+
+    private findComponentSource(element: HTMLElement | null): string | null {
+        if (!element) {
+            return null;
+        }
+        const source = element.getAttribute('data-ng-source');
+        if (source) {
+            return source;
+        }
+        return this.findComponentSource(element.parentElement);
     }
 }
