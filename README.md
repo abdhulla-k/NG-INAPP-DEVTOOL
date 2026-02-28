@@ -37,3 +37,7 @@ This repository holds the main code for the devtool. Here is how to use it in yo
 ### 1. Install It
 
 Detailed installation steps will be added here once the tool is ready to publish.
+
+## 🧩 Plugin Architecture
+
+This devtool is built with extensibility in mind! If you want to contribute or build your own custom tools to integrate into the dev tool shell, please check out the [Core Documentation (Core.md)](./Core.md) for a guide on how to create and register a plugin.
