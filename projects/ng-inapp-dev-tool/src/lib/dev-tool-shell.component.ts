@@ -104,7 +104,7 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
             padding: 20px;
         }
         .draggable-wrapper {
-            font-family: , sans-serif;
+            font-family: 'Inter', sans-serif;
             position: fixed;
             bottom: 20px;
             right: 20px;

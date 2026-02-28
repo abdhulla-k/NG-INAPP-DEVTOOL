@@ -53,7 +53,7 @@ export class DraggableDirective implements OnInit {
 
     // Listen for mouse move event using Function deccorator
     @HostListener('mousedown', ['$event'])
-    private onMouseDown(event: MouseEvent): void {
+    public onMouseDown(event: MouseEvent): void {
         if (event.button === 0) {
             this.isDragging = true;
             this.wasJustDragged = false;

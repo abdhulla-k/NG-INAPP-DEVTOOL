@@ -63,37 +63,26 @@ export function provideInAppDevTools(
                 // Inject root/application reference of angular
                 const appRef = inject(ApplicationRef);
 
-                // Make sure the applicatin is stable and not middle of performing work that might result in a UI change.
-                appRef.isStable
-                    .pipe(first((isStable) => isStable === true))
-                    .subscribe(() => {
-                        // Get the app component ref from the application (root) ref
-                        const appRootView = appRef.components[0]?.hostView;
+                // Function to check for app root view
+                const checkAppRoot = (attempts = 0) => {
+                    const appRootView = appRef.components[0]?.hostView;
+                    if (appRootView) {
+                        console.log('[DevTool] App root view found. Creating shell.');
+                        const environmentInjector = appRef.injector;
+                        const shellComponentRef = createComponent(DevToolShellComponent, {
+                            environmentInjector,
+                        });
+                        document.body.appendChild(shellComponentRef.location.nativeElement);
+                    } else if (attempts < 10) {
+                        // Try again in 100ms
+                        setTimeout(() => checkAppRoot(attempts + 1), 100);
+                    } else {
+                        console.error('[DevTool] Could not find application root view after 10 attempts.');
+                    }
+                };
 
-                        // Make sure existance before starting
-                        if (appRootView) {
-                            console.log(
-                                '[DevTool] App is stable in browser. Creating and attaching shell component.'
-                            );
-
-                            // Get root injector (environment injector) to create component programatically
-                            // We are providing this injector becouse the component need its injector to access dependencies
-                            const environmentInjector = appRef.injector;
-                            const shellComponentRef = createComponent(DevToolShellComponent, {
-                                environmentInjector, // Provide root injector to access from root/environmentProviders
-                            });
-
-                            // Push the component to the body
-                            document.body.appendChild(
-                                shellComponentRef.location.nativeElement
-                            );
-                        } else {
-                            // Show error
-                            console.error(
-                                '[DevTool] Could not find the application root view.'
-                            );
-                        }
-                    });
+                // Start checking
+                checkAppRoot();
             }
         }),
     ]);

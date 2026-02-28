@@ -110,15 +110,12 @@ export class InspectorOverlayComponent {
         if (sourcePath) {
             console.log('Found component source:', sourcePath);
 
-            // 2. Make the request to our local editor server
-            const endpoint = 'http://localhost:4201/__open-in-editor';
-            const url = `${endpoint}?file=${encodeURIComponent(sourcePath)}`;
-
-            fetch(url).then(res => {
-                if (!res.ok) {
-                    console.error(`[DevTools] Failed to open file. Server responded with status ${res.status}`);
-                }
-            });
+            fetch(`/__open-in-editor?file=${sourcePath}`)
+                .then(response => {
+                    if (!response.ok) {
+                        console.error('[DevTools] The open-in-editor server responded with an error.');
+                    }
+                });
 
         } else {
             console.log('Could not find an Angular component source for this element.');

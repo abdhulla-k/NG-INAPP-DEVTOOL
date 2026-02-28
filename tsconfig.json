@@ -12,10 +12,10 @@
         "noFallthroughCasesInSwitch": true,
         "paths": {
             "ng-inapp-dev-tool": [
-                "dist/ng-inapp-dev-tool"
+                "projects/ng-inapp-dev-tool/src/public-api.ts"
             ],
             "ng-inapp-dev-tool/*": [
-                "dist/ng-inapp-dev-tool/*"
+                "projects/ng-inapp-dev-tool/src/*"
             ]
         },
         "skipLibCheck": true,
