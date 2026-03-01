@@ -90,6 +90,35 @@ export class InspectorOverlayComponent {
     }
 
 
+    private findComponentSource(element: HTMLElement | null): string | null {
+        if (!element) {
+            return null;
+        }
+        
+        // Attempt to access Angular's global debug info
+        const ngDebug = (window as any).ng;
+
+        if (ngDebug) {
+            let comp = ngDebug.getComponent(element);
+            if (!comp) {
+                comp = ngDebug.getOwningComponent(element);
+            }
+            if (comp && comp.constructor) {
+                // Read Angular 17+ component debug metadata
+                const cmpMeta = (comp.constructor as any).ɵcmp;
+                if (cmpMeta && cmpMeta.debugInfo && cmpMeta.debugInfo.filePath) {
+                    let sourcePath = cmpMeta.debugInfo.filePath;
+                    if (cmpMeta.debugInfo.lineNumber) {
+                        sourcePath += `:${cmpMeta.debugInfo.lineNumber}`;
+                    }
+                    return sourcePath;
+                }
+            }
+        }
+
+        return this.findComponentSource(element.parentElement);
+    }
+
     // Listen for the click event on document to get the elment clicked to open in editer
     @HostListener('document:click', ['$event'])
     onClick(event: MouseEvent) {
@@ -106,33 +135,26 @@ export class InspectorOverlayComponent {
         this.hostElement.style.display = 'block';
 
         const sourcePath = this.findComponentSource(clickedElement);
-
         if (sourcePath) {
-            console.log('Found component source:', sourcePath);
+            try {
+                // Use Vite's native __open-in-editor middleware which runs in Angular Dev Server
+                // fetch(`/__open-in-editor?file=${encodeURIComponent(sourcePath)}`)
+                //     .then(response => {
+                //         if (!response.ok) {
+                //             console.error('[DevTools] The open-in-editor server responded with an error.');
+                //         }
+                //     });
+                fetch(`/__open-in-editor?file=${sourcePath}`)
+            } catch (error) {
+                console.error('[ng-inapp-dev-tool] Failed to open in editor:', error);
+            }
 
-            fetch(`/__open-in-editor?file=${sourcePath}`)
-                .then(response => {
-                    if (!response.ok) {
-                        console.error('[DevTools] The open-in-editor server responded with an error.');
-                    }
-                });
 
         } else {
-            console.log('Could not find an Angular component source for this element.');
+            console.log('[ng-inapp-dev-tool] Could not find an Angular component source for this element.');
         }
 
         // Emit to close inpect mode from shell component
         this.inspectEnd.emit();
-    }
-
-    private findComponentSource(element: HTMLElement | null): string | null {
-        if (!element) {
-            return null;
-        }
-        const source = element.getAttribute('data-ng-source');
-        if (source) {
-            return source;
-        }
-        return this.findComponentSource(element.parentElement);
     }
 }
