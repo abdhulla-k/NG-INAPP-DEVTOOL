@@ -48,3 +48,6 @@ Thumbs.db
 node_modules
 dist
 .agent
+projects/test-app/src/app/local.config.ts
+projects/test-app/src/environments/
+.env

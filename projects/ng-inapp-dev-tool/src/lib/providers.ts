@@ -12,6 +12,7 @@ import {
 import { first } from 'rxjs';
 
 import { Plugin, NG_INAPP_DEV_TOOL_PLUGINS } from './plugin.token';
+import { DevToolConfig, NG_INAPP_DEV_TOOL_CONFIG } from './config.token';
 import { DevToolShellComponent } from './dev-tool-shell.component';
 
 // Import build in plugins
@@ -19,10 +20,6 @@ import { DevToolShellComponent } from './dev-tool-shell.component';
 // Setup build in plugins here
 const BUILT_IN_PLUGINS: Plugin[] = [];
 
-// Interface / Rules of our plugin
-export interface DevToolConfig {
-    plugins?: Plugin[];
-}
 
 // Provider to return our plugins
 export function provideInAppDevTools(
@@ -51,6 +48,10 @@ export function provideInAppDevTools(
         {
             provide: NG_INAPP_DEV_TOOL_PLUGINS,
             useValue: allPlugins,
+        },
+        {
+            provide: NG_INAPP_DEV_TOOL_CONFIG,
+            useValue: config,
         },
 
         // Provide the callback to run at startup phase to setup everything initially

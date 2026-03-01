@@ -10,6 +10,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+import { NG_INAPP_DEV_TOOL_CONFIG, DevToolConfig } from './config.token';
+
 @Component({
     selector: 'ng-inspector-overlay',
     standalone: true,
@@ -49,6 +51,9 @@ export class InspectorOverlayComponent {
 
     // Inject renderer to manipulate the UI
     private renderer = inject(Renderer2);
+
+    // Inject DevToolConfig to check editor preferences
+    private config = inject<DevToolConfig>(NG_INAPP_DEV_TOOL_CONFIG, { optional: true });
 
     // Get hilighter to mange size and manipulate it
     @ViewChild('highlighter', { static: true })
@@ -136,20 +141,35 @@ export class InspectorOverlayComponent {
 
         const sourcePath = this.findComponentSource(clickedElement);
         if (sourcePath) {
-            try {
-                // Use Vite's native __open-in-editor middleware which runs in Angular Dev Server
-                // fetch(`/__open-in-editor?file=${encodeURIComponent(sourcePath)}`)
-                //     .then(response => {
-                //         if (!response.ok) {
-                //             console.error('[DevTools] The open-in-editor server responded with an error.');
-                //         }
-                //     });
-                fetch(`/__open-in-editor?file=${sourcePath}`)
-            } catch (error) {
-                console.error('[ng-inapp-dev-tool] Failed to open in editor:', error);
+            console.log('[ng-inapp-dev-tool] Component source:', sourcePath);
+            
+            const editorConfig = this.config?.editor;
+            const projectRoot = this.config?.projectRoot;
+
+            // Allow opting out of the editor opening feature via configuration
+            if (editorConfig !== false) {
+                try {
+                    if (!editorConfig || editorConfig === 'vscode' || editorConfig === true) {
+                        // Use Vite's native __open-in-editor middleware which runs in Angular Dev Server
+                        fetch(`/__open-in-editor?file=${sourcePath}`);
+                    } else if (typeof editorConfig === 'string') {
+                        // Use custom URL scheme for other editors
+                        // Note: Custom schemas usually require absolute paths.
+                        let fullPath = sourcePath;
+                        if (projectRoot) {
+                            // Ensure projectRoot ends with a slash and sourcePath doesn't start with one
+                            const safeRoot = projectRoot.replace(/\/$/, '') + '/';
+                            const safePath = sourcePath.replace(/^\//, '');
+                            fullPath = `${safeRoot}${safePath}`;
+                        }
+                        window.open(`${editorConfig}://file/${fullPath}`, '_blank');
+                    }
+                } catch (error) {
+                    console.error('[ng-inapp-dev-tool] Failed to open in editor:', error);
+                }
+            } else {
+                console.log('[ng-inapp-dev-tool] Editor opening disabled by DevToolConfig.');
             }
-
-
         } else {
             console.log('[ng-inapp-dev-tool] Could not find an Angular component source for this element.');
         }

@@ -4,3 +4,4 @@
 
 export * from './lib/providers';
 export * from './lib/plugin.token';
+export * from './lib/config.token';
