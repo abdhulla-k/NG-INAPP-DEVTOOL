@@ -37,3 +37,29 @@ This repository holds the main code for the devtool. Here is how to use it in yo
 ### 1. Install It
 
 Detailed installation steps will be added here once the tool is ready to publish.
+
+### 2. Testing Locally
+
+To test the devtool locally in the `test-app`, you need to configure your absolute project path so the editor plugin knows where to open files.
+
+1. Create a file named `local.config.ts` inside `projects/test-app/src/app/`. (This file is ignored by git so your path won't be exposed).
+2. Inside it, export your path:
+   ```typescript
+   export const projectRoot = "/absolute/path/to/your/cloned/repo";
+   ```
+3. In `projects/test-app/src/app/app.config.ts`, uncomment the import and use it:
+
+   ```typescript
+   import { projectRoot } from "./local.config";
+
+   // ...
+   provideInAppDevTools({
+     plugins: devToolPlugins,
+     editor: "antigravity",
+     projectRoot: projectRoot,
+   });
+   ```
+
+## 🧩 Plugin Architecture
+
+This devtool is built with extensibility in mind! If you want to contribute or build your own custom tools to integrate into the dev tool shell, please check out the [Core Documentation (Core.md)](./Core.md) for a guide on how to create and register a plugin.
