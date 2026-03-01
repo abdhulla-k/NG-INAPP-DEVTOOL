@@ -149,10 +149,11 @@ export class InspectorOverlayComponent {
             // Allow opting out of the editor opening feature via configuration
             if (editorConfig !== false) {
                 try {
-                    if (!editorConfig || editorConfig === 'vscode' || editorConfig === true) {
+                    if (!editorConfig || editorConfig === 'vite') {
                         // Use Vite's native __open-in-editor middleware which runs in Angular Dev Server
                         fetch(`/__open-in-editor?file=${sourcePath}`);
-                    } else if (typeof editorConfig === 'string') {
+                    } else if (typeof editorConfig === 'string' || editorConfig === true) {
+                        const scheme = editorConfig === true ? 'vscode' : editorConfig;
                         // Use custom URL scheme for other editors
                         // Note: Custom schemas usually require absolute paths.
                         let fullPath = sourcePath;
@@ -161,8 +162,12 @@ export class InspectorOverlayComponent {
                             const safeRoot = projectRoot.replace(/\/$/, '') + '/';
                             const safePath = sourcePath.replace(/^\//, '');
                             fullPath = `${safeRoot}${safePath}`;
+                        } else if (!fullPath.startsWith('/')) {
+                            // Ensure there is a full path format for URI if it's missing root
+                            fullPath = '/' + fullPath;
                         }
-                        window.open(`${editorConfig}://file/${fullPath}`, '_blank');
+                        
+                        window.open(`${scheme}://file${fullPath}`, '_blank');
                     }
                 } catch (error) {
                     console.error('[ng-inapp-dev-tool] Failed to open in editor:', error);
