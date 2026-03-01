@@ -49,8 +49,8 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
-                    width="24"
-                    height="24"
+                    width="18"
+                    height="18"
                     fill="none"
                     stroke="currentColor"
                     stroke-width="2"
@@ -69,7 +69,7 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
                 </button>
 
                 <button class="floating-button" (click)="toggle()">
-                <p>DEV TOOL</p>
+                <p>NG DEV TOOL</p>
                 </button>
             </div>
         </div>
@@ -111,12 +111,12 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
             z-index: 9998;
         }
         .floating-button {
-            padding: 0px 15px;
+            padding: 0px 15px 0px 5px;
             border-radius: 13px;
             color: white;
             background-color: #000000ff;
             border: none;
-            font-size: 14px;
+            font-size: 12px;
             cursor: pointer;
             z-index: 10000;
         }
