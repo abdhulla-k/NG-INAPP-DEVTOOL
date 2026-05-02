@@ -16,7 +16,11 @@ import { NG_INAPP_DEV_TOOL_CONFIG, DevToolConfig } from './config.token';
     selector: 'ng-inspector-overlay',
     standalone: true,
     imports: [CommonModule],
-    template: ` <div #highlighter class="highlighter"></div> `,
+    template: `
+        <div #highlighter class="highlighter">
+            <div #label class="highlighter-label"></div>
+        </div>
+    `,
     styles: [
         `
         :host {
@@ -32,11 +36,37 @@ import { NG_INAPP_DEV_TOOL_CONFIG, DevToolConfig } from './config.token';
 
         .highlighter {
             position: fixed;
-            background-color: #f637e333;
-            border: 1px solid #5a0051ff;
-            border-radius: 3px;
+            background-color: oklch(69.02% 0.277 332.77 / 0.2);
+            border: 1px solid oklch(69.02% 0.277 332.77);
+            border-radius: 4px;
             pointer-events: none;
             z-index: 9991;
+            transition: all 0.1s ease-out;
+        }
+
+        .highlighter-label {
+            position: absolute;
+            background-color: oklch(69.02% 0.277 332.77);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            left: 0;
+        }
+
+        .highlighter-label.bottom {
+            bottom: -22px;
+            top: auto;
+        }
+
+        .highlighter-label.top {
+            top: -22px;
+            bottom: auto;
         }
     `,
     ],
@@ -58,6 +88,9 @@ export class InspectorOverlayComponent {
     // Get hilighter to mange size and manipulate it
     @ViewChild('highlighter', { static: true })
     private highlighter!: ElementRef<HTMLElement>;
+
+    @ViewChild('label', { static: true })
+    private label!: ElementRef<HTMLElement>;
 
     // variable to save last selected element
     private lastTarget: HTMLElement | null = null;
@@ -85,6 +118,25 @@ export class InspectorOverlayComponent {
             // Get the position and dimensions of the target element
             const rect = elementUnderCursor.getBoundingClientRect();
             const highlighterEl = this.highlighter.nativeElement;
+            const labelEl = this.label.nativeElement;
+
+            // Get component info
+            const compInfo = this.getComponentInfo(elementUnderCursor);
+            if (compInfo) {
+                labelEl.textContent = compInfo.name;
+                this.renderer.setStyle(labelEl, 'display', 'block');
+                
+                // Position label
+                if (rect.top < 30) {
+                    this.renderer.addClass(labelEl, 'bottom');
+                    this.renderer.removeClass(labelEl, 'top');
+                } else {
+                    this.renderer.addClass(labelEl, 'top');
+                    this.renderer.removeClass(labelEl, 'bottom');
+                }
+            } else {
+                this.renderer.setStyle(labelEl, 'display', 'none');
+            }
 
             //  Use the Renderer to apply the styles to our highlighter div
             this.renderer.setStyle(highlighterEl, 'width', `${rect.width}px`);
@@ -94,12 +146,11 @@ export class InspectorOverlayComponent {
         }
     }
 
-
-    private findComponentSource(element: HTMLElement | null): string | null {
+    private getComponentInfo(element: HTMLElement | null): { name: string; path: string } | null {
         if (!element) {
             return null;
         }
-        
+
         // Attempt to access Angular's global debug info
         const ngDebug = (window as any).ng;
 
@@ -111,17 +162,21 @@ export class InspectorOverlayComponent {
             if (comp && comp.constructor) {
                 // Read Angular 17+ component debug metadata
                 const cmpMeta = (comp.constructor as any).ɵcmp;
+                let path = '';
                 if (cmpMeta && cmpMeta.debugInfo && cmpMeta.debugInfo.filePath) {
-                    let sourcePath = cmpMeta.debugInfo.filePath;
+                    path = cmpMeta.debugInfo.filePath;
                     if (cmpMeta.debugInfo.lineNumber) {
-                        sourcePath += `:${cmpMeta.debugInfo.lineNumber}`;
+                        path += `:${cmpMeta.debugInfo.lineNumber}`;
                     }
-                    return sourcePath;
                 }
+                return {
+                    name: comp.constructor.name,
+                    path: path,
+                };
             }
         }
 
-        return this.findComponentSource(element.parentElement);
+        return this.getComponentInfo(element.parentElement);
     }
 
     // Listen for the click event on document to get the elment clicked to open in editer
@@ -139,8 +194,9 @@ export class InspectorOverlayComponent {
         ) as HTMLElement;
         this.hostElement.style.display = 'block';
 
-        const sourcePath = this.findComponentSource(clickedElement);
-        if (sourcePath) {
+        const compInfo = this.getComponentInfo(clickedElement);
+        if (compInfo && compInfo.path) {
+            const sourcePath = compInfo.path;
             console.log('[ng-inapp-dev-tool] Component source:', sourcePath);
             
             const editorConfig = this.config?.editor;
