@@ -271,50 +271,32 @@ export class InspectorOverlayComponent {
 
     // ─── Actions ───
 
-    /** Navigate to parent Angular component */
+    /** Navigate to the parent DOM element (one level up per click) */
     goToParent() {
         if (!this.selectedElement) return;
 
-        const ngDebug = (window as any).ng;
-        if (!ngDebug) return;
+        const parentEl = this.selectedElement.parentElement;
+        if (!parentEl) return;
 
-        // Step 1: Find the host element of the current component.
-        // Walk up from selectedElement to find the element where getComponent() returns something.
-        let hostEl: HTMLElement | null = this.selectedElement;
-        while (hostEl) {
-            if (ngDebug.getComponent(hostEl)) break;
-            hostEl = hostEl.parentElement;
-        }
-        if (!hostEl) return;
+        // Don't walk above the document body
+        if (parentEl === document.documentElement || parentEl === document.body) return;
 
-        // Step 2: Start from the host's parent and find the next component host above it.
-        let walker: HTMLElement | null = hostEl.parentElement;
-        while (walker) {
-            const comp = ngDebug.getComponent(walker);
-            if (comp && comp.constructor) {
-                // Found a parent component host element
-                const cmpMeta = (comp.constructor as any).ɵcmp;
-                let path = '';
-                if (cmpMeta?.debugInfo?.filePath) {
-                    path = cmpMeta.debugInfo.filePath;
-                    if (cmpMeta.debugInfo.lineNumber) path += `:${cmpMeta.debugInfo.lineNumber}`;
-                }
-                const parentInfo = { name: comp.constructor.name, path };
+        const info = this.getComponentInfo(parentEl);
+        if (!info) return;
 
-                this.selectedElement = walker;
-                this.selectedInfo = { ...parentInfo, domPath: this.buildDomPath(walker) };
-                this.updateHighlighter(walker);
-                this.cdr.detectChanges();
+        this.selectedElement = parentEl;
+        this.selectedInfo = { ...info, domPath: this.buildDomPath(parentEl) };
+        this.updateHighlighter(parentEl);
+        this.cdr.detectChanges();
 
-                const rect = walker.getBoundingClientRect();
-                this.calculatePanelPosition(rect.left + rect.width / 2, rect.top);
-                return;
-            }
-            walker = walker.parentElement;
-        }
+        const rect = parentEl.getBoundingClientRect();
+        this.calculatePanelPosition(rect.left + rect.width / 2, rect.top);
     }
 
-    /** Open the component source in the configured editor */
+    /** Open the component source in the configured editor.
+     *  Prefers the HTML template file if one exists (by convention: foo.component.html),
+     *  otherwise falls back to the .ts file.
+     */
     openInEditor() {
         if (!this.selectedInfo?.path) return;
         const sourcePath = this.selectedInfo.path;
@@ -323,15 +305,36 @@ export class InspectorOverlayComponent {
 
         if (editorConfig === false) return;
 
+        // Strip line:col suffix to get a clean file path
+        const cleanPath = sourcePath.replace(/:\d+.*$/, '');
+        // Try the HTML template path (foo.component.ts → foo.component.html)
+        const htmlPath = cleanPath.replace(/\.ts$/, '.html');
+        const hasHtmlCandidate = htmlPath !== cleanPath;
+
         try {
             if (!editorConfig || editorConfig === 'vite') {
-                fetch(`/__open-in-editor?file=${sourcePath}`);
+                // With Vite's __open-in-editor, try the HTML file first.
+                // If it doesn't exist the server returns 404 silently, so we fall back.
+                if (hasHtmlCandidate) {
+                    fetch(`/__open-in-editor?file=${htmlPath}`).then(res => {
+                        if (!res.ok) {
+                            // HTML template doesn't exist → open the TS file
+                            fetch(`/__open-in-editor?file=${sourcePath}`);
+                        }
+                    }).catch(() => {
+                        fetch(`/__open-in-editor?file=${sourcePath}`);
+                    });
+                } else {
+                    fetch(`/__open-in-editor?file=${sourcePath}`);
+                }
             } else if (typeof editorConfig === 'string' || editorConfig === true) {
                 const scheme = editorConfig === true ? 'vscode' : editorConfig;
-                let fullPath = sourcePath;
+                // For URL-scheme editors, try .html first by convention
+                const fileToOpen = hasHtmlCandidate ? htmlPath : cleanPath;
+                let fullPath = fileToOpen;
                 if (projectRoot) {
                     const safeRoot = projectRoot.replace(/\/$/, '') + '/';
-                    const safePath = sourcePath.replace(/^\//, '');
+                    const safePath = fileToOpen.replace(/^\//, '');
                     fullPath = `${safeRoot}${safePath}`;
                 } else if (!fullPath.startsWith('/')) {
                     fullPath = '/' + fullPath;
