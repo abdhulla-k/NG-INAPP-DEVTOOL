@@ -320,11 +320,15 @@ export class InspectorOverlayComponent {
         // Resolve which file to open (prefer HTML template if it exists)
         const openFile = (filePath: string) => {
             try {
+                // Strip line:col suffix to avoid unrecognized editors interpreting it as a new file to create.
+                // e.g. "app.component.ts:11" -> "app.component.ts"
+                const cleanFilePath = filePath.replace(/:\d+.*$/, '');
+
                 // Build the full absolute path if projectRoot is configured
-                let fullPath = filePath;
+                let fullPath = cleanFilePath;
                 if (projectRoot) {
                     const safeRoot = projectRoot.replace(/\/$/, '') + '/';
-                    const safePath = filePath.replace(/^\//, '');
+                    const safePath = cleanFilePath.replace(/^\//, '');
                     fullPath = `${safeRoot}${safePath}`;
                 }
 
