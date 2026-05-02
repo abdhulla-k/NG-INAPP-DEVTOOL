@@ -213,7 +213,10 @@ export class InspectorOverlayComponent {
         const el = document.elementFromPoint(event.clientX, event.clientY) as HTMLElement;
         this.hostElement.style.display = 'block';
 
-        if (el && this.lastTarget !== el) {
+        // Skip devtool's own UI elements
+        if (!el || this.isDevToolElement(el)) return;
+
+        if (this.lastTarget !== el) {
             this.lastTarget = el;
             this.updateHighlighter(el);
         }
@@ -241,6 +244,9 @@ export class InspectorOverlayComponent {
         this.hostElement.style.display = 'none';
         const clickedEl = document.elementFromPoint(event.clientX, event.clientY) as HTMLElement;
         this.hostElement.style.display = 'block';
+
+        // Skip devtool's own UI elements
+        if (!clickedEl || this.isDevToolElement(clickedEl)) return;
 
         const info = this.getComponentInfo(clickedEl);
         if (!info) return;
@@ -311,38 +317,40 @@ export class InspectorOverlayComponent {
         const htmlPath = cleanPath.replace(/\.ts$/, '.html');
         const hasHtmlCandidate = htmlPath !== cleanPath;
 
-        try {
-            if (!editorConfig || editorConfig === 'vite') {
-                // With Vite's __open-in-editor, try the HTML file first.
-                // If it doesn't exist the server returns 404 silently, so we fall back.
-                if (hasHtmlCandidate) {
-                    fetch(`/__open-in-editor?file=${htmlPath}`).then(res => {
-                        if (!res.ok) {
-                            // HTML template doesn't exist → open the TS file
-                            fetch(`/__open-in-editor?file=${sourcePath}`);
-                        }
-                    }).catch(() => {
-                        fetch(`/__open-in-editor?file=${sourcePath}`);
-                    });
-                } else {
-                    fetch(`/__open-in-editor?file=${sourcePath}`);
-                }
-            } else if (typeof editorConfig === 'string' || editorConfig === true) {
-                const scheme = editorConfig === true ? 'vscode' : editorConfig;
-                // For URL-scheme editors, try .html first by convention
-                const fileToOpen = hasHtmlCandidate ? htmlPath : cleanPath;
-                let fullPath = fileToOpen;
+        // Resolve which file to open (prefer HTML template if it exists)
+        const openFile = (filePath: string) => {
+            try {
+                // Build the full absolute path if projectRoot is configured
+                let fullPath = filePath;
                 if (projectRoot) {
                     const safeRoot = projectRoot.replace(/\/$/, '') + '/';
-                    const safePath = fileToOpen.replace(/^\//, '');
+                    const safePath = filePath.replace(/^\//, '');
                     fullPath = `${safeRoot}${safePath}`;
-                } else if (!fullPath.startsWith('/')) {
-                    fullPath = '/' + fullPath;
                 }
-                window.open(`${scheme}://file${fullPath}`, '_blank');
+
+                // Always use the dev-server's __open-in-editor endpoint (no browser prompts).
+                // The editor name is set via LAUNCH_EDITOR env var on the server, or we pass it.
+                const params = new URLSearchParams({ file: fullPath });
+                fetch(`/__open-in-editor?${params.toString()}`);
+            } catch (error) {
+                console.error('[ng-inapp-dev-tool] Failed to open in editor:', error);
             }
-        } catch (error) {
-            console.error('[ng-inapp-dev-tool] Failed to open in editor:', error);
+        };
+
+        if (hasHtmlCandidate) {
+            // Check if the HTML template actually exists by fetching it.
+            // SPA fallback returns the full index.html (starts with <!doctype html>).
+            // A real Vite-processed template returns a JS module, not raw HTML.
+            fetch(`/${htmlPath}`)
+                .then(async res => {
+                    if (!res.ok) return openFile(sourcePath);
+                    const body = await res.text();
+                    const isSpaFallback = body.trimStart().substring(0, 50).toLowerCase().includes('<!doctype');
+                    openFile(isSpaFallback ? sourcePath : htmlPath);
+                })
+                .catch(() => openFile(sourcePath));
+        } else {
+            openFile(sourcePath);
         }
     }
 
@@ -459,5 +467,10 @@ export class InspectorOverlayComponent {
 
         this.panelTop = top;
         this.panelLeft = left;
+    }
+
+    /** Check if an element belongs to the devtool's own UI (shell, overlay, panel) */
+    private isDevToolElement(el: HTMLElement): boolean {
+        return !!el.closest('ng-inapp-dev-tool-shell');
     }
 }
