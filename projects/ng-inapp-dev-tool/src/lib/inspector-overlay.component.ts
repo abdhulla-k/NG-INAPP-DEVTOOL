@@ -275,30 +275,42 @@ export class InspectorOverlayComponent {
     goToParent() {
         if (!this.selectedElement) return;
 
-        // Walk up from the current component's host element to find the next parent component
-        const currentInfo = this.getComponentInfo(this.selectedElement);
-        let parentEl: HTMLElement | null = this.selectedElement;
-
-        // Find the host element of the current component first
         const ngDebug = (window as any).ng;
-        if (ngDebug) {
-            // Walk up until we find a different component
-            parentEl = this.selectedElement.parentElement;
-            while (parentEl) {
-                const parentInfo = this.getComponentInfo(parentEl);
-                if (parentInfo && parentInfo.name !== currentInfo?.name) {
-                    // Found a different parent component
-                    this.selectedElement = parentEl;
-                    this.selectedInfo = { ...parentInfo, domPath: this.buildDomPath(parentEl) };
-                    this.updateHighlighter(parentEl);
-                    this.cdr.detectChanges();
+        if (!ngDebug) return;
 
-                    const rect = parentEl.getBoundingClientRect();
-                    this.calculatePanelPosition(rect.left + rect.width / 2, rect.top);
-                    return;
+        // Step 1: Find the host element of the current component.
+        // Walk up from selectedElement to find the element where getComponent() returns something.
+        let hostEl: HTMLElement | null = this.selectedElement;
+        while (hostEl) {
+            if (ngDebug.getComponent(hostEl)) break;
+            hostEl = hostEl.parentElement;
+        }
+        if (!hostEl) return;
+
+        // Step 2: Start from the host's parent and find the next component host above it.
+        let walker: HTMLElement | null = hostEl.parentElement;
+        while (walker) {
+            const comp = ngDebug.getComponent(walker);
+            if (comp && comp.constructor) {
+                // Found a parent component host element
+                const cmpMeta = (comp.constructor as any).ɵcmp;
+                let path = '';
+                if (cmpMeta?.debugInfo?.filePath) {
+                    path = cmpMeta.debugInfo.filePath;
+                    if (cmpMeta.debugInfo.lineNumber) path += `:${cmpMeta.debugInfo.lineNumber}`;
                 }
-                parentEl = parentEl.parentElement;
+                const parentInfo = { name: comp.constructor.name, path };
+
+                this.selectedElement = walker;
+                this.selectedInfo = { ...parentInfo, domPath: this.buildDomPath(walker) };
+                this.updateHighlighter(walker);
+                this.cdr.detectChanges();
+
+                const rect = walker.getBoundingClientRect();
+                this.calculatePanelPosition(rect.left + rect.width / 2, rect.top);
+                return;
             }
+            walker = walker.parentElement;
         }
     }
 
