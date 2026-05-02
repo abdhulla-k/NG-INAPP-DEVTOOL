@@ -9,6 +9,7 @@ import {
     HostListener,
 } from '@angular/core';
 import { CommonModule, NgComponentOutlet } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 import { NG_INAPP_DEV_TOOL_PLUGINS, Plugin } from './plugin.token';
 import { DraggableDirective, Position } from './draggable.directive';
@@ -52,7 +53,7 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
                                 [class.active]="activePlugin === plugin"
                                 (click)="selectPlugin(plugin)"
                                 [title]="plugin.name"
-                                [innerHTML]="plugin.icon"
+                                [innerHTML]="sanitizeHtml(plugin.icon)"
                             ></button>
                         }
                     </aside>
@@ -345,6 +346,9 @@ export class DevToolShellComponent implements OnInit {
     // Inject renderer2 to safely manipulate dome elements
     private renderer = inject(Renderer2);
 
+    // Inject DOM sanitizer to safely render plugin icons
+    private sanitizer = inject(DomSanitizer);
+
     ngOnInit(): void {
         this.cdr.detectChanges();
 
@@ -395,6 +399,10 @@ export class DevToolShellComponent implements OnInit {
             this.hidden = true;
             this.cdr.detectChanges();
         }
+    }
+
+    sanitizeHtml(html: string): SafeHtml {
+        return this.sanitizer.bypassSecurityTrustHtml(html);
     }
 
     onPositionChange(buttonPos: Position, customWidth?: number, customHeight?: number): void {
