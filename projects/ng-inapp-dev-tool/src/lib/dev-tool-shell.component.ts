@@ -38,6 +38,14 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
                     <div class="resize-handle left" (mousedown)="startResize($event, 'left')"></div>
 
                     <aside class="sidebar">
+                        <div class="sidebar-logo">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250" width="22" height="22">
+                                <path fill="none" stroke="currentColor" stroke-width="20" stroke-linejoin="round" d="M125 30L31.9 63.2l14.2 123.1L125 230l78.9-43.7 14.2-123.1z"/>
+                                <path fill="currentColor" d="M125 52.1L66.8 182.6h21.7l11.7-29.2h49.4l11.7 29.2H183L125 52.1zm17 83.3h-34l17-40.9 17 40.9z"/>
+                            </svg>
+                        </div>
+                        <div class="sidebar-divider"></div>
+
                         @for (plugin of plugins; track plugin.name) {
                             <button 
                                 class="plugin-tab" 
@@ -157,19 +165,35 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
         .shell-container.pinned-right .resize-handle.right { display: none; }
 
         .sidebar {
-            width: 50px;
-            background: var(--gray-900);
+            width: 55px;
+            background: #18181b;
             display: flex;
             flex-direction: column;
             border-right: 1px solid var(--gray-700);
-            padding-top: 10px;
+            padding-top: 15px;
             align-items: center;
             overflow-y: auto;
             overflow-x: hidden;
+            box-sizing: border-box;
         }
 
         .sidebar::-webkit-scrollbar {
             display: none;
+        }
+
+        .sidebar-logo {
+            color: var(--vivid-pink);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-divider {
+            width: 35px;
+            height: 1px;
+            background: var(--gray-700);
+            margin-bottom: 15px;
         }
         
         .plugin-tab {
@@ -178,24 +202,25 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
             color: var(--gray-400);
             cursor: pointer;
             padding: 10px;
-            margin-bottom: 5px;
-            border-radius: 8px;
+            margin-bottom: 8px;
+            border-radius: 12px;
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
+            width: 42px;
+            height: 42px;
         }
 
         .plugin-tab:hover {
             color: white;
-            background: var(--gray-700);
+            background: var(--gray-800);
         }
 
         .plugin-tab.active {
             color: var(--vivid-pink);
             background: rgba(255, 65, 248, 0.1);
+            box-shadow: inset 0 0 0 1px rgba(255, 65, 248, 0.2);
         }
         
         /* Ensure SVGs injected via innerHTML fit nicely */
