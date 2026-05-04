@@ -320,9 +320,17 @@ export class InspectorOverlayComponent {
         // Resolve which file to open (prefer HTML template if it exists)
         const openFile = (filePath: string) => {
             try {
-                // Strip line:col suffix to avoid unrecognized editors interpreting it as a new file to create.
-                // e.g. "app.component.ts:11" -> "app.component.ts"
+                // Parse file path to separate path from line:col
                 const cleanFilePath = filePath.replace(/:\d+.*$/, '');
+                
+                // Try to extract line and col if available for precise jumping
+                let line = '1';
+                let col = '1';
+                const match = filePath.match(/:(\d+)(?::(\d+))?$/);
+                if (match) {
+                    line = match[1];
+                    if (match[2]) col = match[2];
+                }
 
                 // Build the full absolute path if projectRoot is configured
                 let fullPath = cleanFilePath;
@@ -332,10 +340,31 @@ export class InspectorOverlayComponent {
                     fullPath = `${safeRoot}${safePath}`;
                 }
 
-                // Always use the dev-server's __open-in-editor endpoint (no browser prompts).
-                // The editor name is set via LAUNCH_EDITOR env var on the server, or we pass it.
-                const params = new URLSearchParams({ file: fullPath });
-                fetch(`/__open-in-editor?${params.toString()}`);
+                // Default to vscode if not specified
+                const editor = (this.config?.editor || 'vscode');
+                
+                if (editor === 'vscode' || editor === 'code') {
+                    const a = document.createElement('a');
+                    a.href = `vscode://file${fullPath}:${line}:${col}`;
+                    a.click();
+                } else if (editor === 'cursor') {
+                    const a = document.createElement('a');
+                    a.href = `cursor://file${fullPath}:${line}:${col}`;
+                    a.click();
+                } else if (editor === 'webstorm') {
+                    const a = document.createElement('a');
+                    a.href = `webstorm://open?file=${fullPath}&line=${line}&column=${col}`;
+                    a.click();
+                } else if (editor === 'idea') {
+                    const a = document.createElement('a');
+                    a.href = `idea://open?file=${fullPath}&line=${line}&column=${col}`;
+                    a.click();
+                } else {
+                    // Fallback to dev server endpoint if custom editor (e.g. antigravity)
+                    // The editor name must be set via LAUNCH_EDITOR env var on the server
+                    const params = new URLSearchParams({ file: fullPath });
+                    fetch(`/__open-in-editor?${params.toString()}`);
+                }
             } catch (error) {
                 console.error('[ng-inapp-dev-tool] Failed to open in editor:', error);
             }
