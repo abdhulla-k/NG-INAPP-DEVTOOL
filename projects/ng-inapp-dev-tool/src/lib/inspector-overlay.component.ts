@@ -361,10 +361,19 @@ export class InspectorOverlayComponent {
     /** Copy component info to clipboard (useful for pasting to AI agents) */
     copyInfo() {
         if (!this.selectedInfo) return;
+        
+        const url = window.location.href;
+        const viewport = `${window.innerWidth}x${window.innerHeight}`;
+        const selector = this.buildPreciseSelector(this.selectedElement);
+        const compTree = this.getComponentTree(this.selectedElement);
+        const file = this.selectedInfo.path || 'unknown';
+
         const text = [
-            `Component: ${this.selectedInfo.name}`,
-            `File: ${this.selectedInfo.path || 'unknown'}`,
-            `DOM: ${this.selectedInfo.domPath}`,
+            `Page URL: ${url}`,
+            `Viewport: ${viewport}`,
+            `Selector: ${selector}`,
+            `Component Tree: ${compTree}`,
+            `File: ${file}`
         ].join('\n');
 
         navigator.clipboard.writeText(text).then(() => {
@@ -375,6 +384,64 @@ export class InspectorOverlayComponent {
                 this.cdr.detectChanges();
             }, 1500);
         });
+    }
+
+    private buildPreciseSelector(element: HTMLElement | null): string {
+        if (!element) return '';
+        const parts: string[] = [];
+        let el: HTMLElement | null = element;
+        while (el && el.tagName !== 'HTML') {
+            let part = el.tagName.toLowerCase();
+            if (el.id) {
+                part += `#${CSS.escape(el.id)}`;
+                parts.unshift(part);
+                break;
+            } else {
+                const className = el.getAttribute('class');
+                if (className) {
+                    const classes = className.split(/\s+/).filter(c => c && !c.startsWith('ng-'));
+                    if (classes.length) {
+                        try {
+                            part += '.' + classes.map(c => CSS.escape(c)).join('.');
+                        } catch (e) {
+                            // ignore CSS escape errors
+                        }
+                    }
+                }
+                
+                if (el.parentElement) {
+                    const siblings = Array.from(el.parentElement.children);
+                    const sameTypeSiblings = siblings.filter(s => s.tagName === el!.tagName);
+                    if (sameTypeSiblings.length > 1) {
+                        const index = sameTypeSiblings.indexOf(el) + 1;
+                        part += `:nth-of-type(${index})`;
+                    }
+                }
+                parts.unshift(part);
+            }
+            if (el.tagName === 'BODY') break;
+            el = el.parentElement;
+        }
+        return parts.join(' > ');
+    }
+
+    private getComponentTree(element: HTMLElement | null): string {
+        if (!element) return '';
+        const parts: string[] = [];
+        let currentEl: HTMLElement | null = element;
+        const ngDebug = (window as any).ng;
+        
+        if (!ngDebug) return this.selectedInfo?.domPath || '';
+
+        while (currentEl && currentEl.tagName !== 'HTML') {
+            const comp = ngDebug.getComponent(currentEl);
+            if (comp) {
+                parts.unshift(comp.constructor.name);
+            }
+            currentEl = currentEl.parentElement;
+        }
+        
+        return parts.length > 0 ? parts.join(' > ') : (this.selectedInfo?.domPath || '');
     }
 
     /** Close the info panel and resume hover inspection */
