@@ -1,5 +1,7 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject, NgZone, isSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+
+import { NG_INAPP_DEV_TOOL_CONFIG, DevToolConfig } from '../../config.token';
 
 export interface ComponentTreeNode {
     id: string; // Unique ID (e.g. random string or index path)
@@ -8,6 +10,12 @@ export interface ComponentTreeNode {
     instance: any; // The raw angular component instance
     children: ComponentTreeNode[];
     expanded: boolean;
+}
+
+interface StateEntry {
+    key: string;
+    value: any;
+    isSignal: boolean;
 }
 
 @Component({
@@ -38,19 +46,28 @@ export interface ComponentTreeNode {
             <div class="state-pane">
                 <div class="pane-header">
                     <h3>{{ selectedNode ? '<' + selectedNode.name + '>' : 'Select a component' }}</h3>
+                    @if (selectedNode && canOpenInEditor()) {
+                        <button class="open-btn" (click)="openSelectedInEditor()" title="Open source file in editor">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                            Open
+                        </button>
+                    }
                 </div>
                 <div class="state-container">
                     @if (selectedNode) {
                         <div class="state-section">
                             <h4>State</h4>
-                            @if (hasState(selectedNodeState)) {
+                            @if (selectedNodeStateEntries.length > 0) {
                                 <div class="state-list">
-                                    @for (kv of selectedNodeState | keyvalue; track kv.key) {
+                                    @for (entry of selectedNodeStateEntries; track entry.key) {
                                         <div class="state-row">
-                                            <span class="state-key">{{ kv.key }}</span>
+                                            <span class="state-key">{{ entry.key }}</span>
+                                            @if (entry.isSignal) {
+                                                <span class="signal-tag" title="Reactive signal">signal</span>
+                                            }
                                             <span class="state-separator">:</span>
-                                            <span class="state-value" [class]="getValueType(kv.value)">
-                                                {{ formatValue(kv.value) }}
+                                            <span class="state-value" [class]="getValueType(entry.value)">
+                                                {{ formatValue(entry.value) }}
                                             </span>
                                         </div>
                                     }
@@ -69,9 +86,11 @@ export interface ComponentTreeNode {
         <!-- Recursive Tree Node Template -->
         <ng-template #treeNodeTpl let-node>
             <div class="tree-node" [class.selected]="selectedNode === node">
-                <div class="node-content" 
+                <div class="node-content"
                      [style.padding-left.px]="(getDepth(node) * 16) + 8"
-                     (click)="selectNode(node)">
+                     (click)="selectNode(node)"
+                     (mouseenter)="highlight(node.element)"
+                     (mouseleave)="clearHighlight()">
                     <!-- Expand/Collapse Caret -->
                     <span class="caret" 
                           [class.invisible]="!node.children.length"
@@ -272,6 +291,36 @@ export interface ComponentTreeNode {
             color: #9cdcfe; /* VS Code light blue for properties */
             margin-right: 2px;
         }
+        .signal-tag {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #a78bfa;
+            background: rgba(168, 139, 250, 0.15);
+            padding: 1px 5px;
+            border-radius: 3px;
+            margin-right: 6px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+        }
+        .open-btn {
+            background: transparent;
+            border: 1px solid var(--gray-700);
+            color: #cbd5e1;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 11px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .open-btn:hover {
+            color: white;
+            background: var(--gray-700);
+        }
+        .open-btn svg { width: 14px; height: 14px; }
         .state-separator {
             color: var(--gray-500);
             margin-right: 6px;
@@ -296,15 +345,21 @@ export interface ComponentTreeNode {
 export class ComponentsComponent implements OnInit, OnDestroy {
     treeNodes: ComponentTreeNode[] = [];
     selectedNode: ComponentTreeNode | null = null;
-    selectedNodeState: Record<string, any> = {};
+    selectedNodeStateEntries: StateEntry[] = [];
 
     private cdr = inject(ChangeDetectorRef);
     private ngZone = inject(NgZone);
+    private config = inject<DevToolConfig>(NG_INAPP_DEV_TOOL_CONFIG, { optional: true });
     private pollInterval: any;
     private idCounter = 0;
-    
+
     // Store depth map for fast indentation styling
     private depthMap = new Map<string, number>();
+
+    // Hover-highlight state — restored on leave
+    private highlightEl: HTMLElement | null = null;
+    private prevOutline = '';
+    private prevOutlineOffset = '';
 
     ngOnInit() {
         this.refreshTree();
@@ -323,6 +378,7 @@ export class ComponentsComponent implements OnInit, OnDestroy {
         if (this.pollInterval) {
             clearInterval(this.pollInterval);
         }
+        this.clearHighlight();
     }
 
     refreshTree() {
@@ -345,10 +401,10 @@ export class ComponentsComponent implements OnInit, OnDestroy {
                 this.updateSelectedNodeState();
             } else {
                 this.selectedNode = null;
-                this.selectedNodeState = {};
+                this.selectedNodeStateEntries = [];
             }
         }
-        
+
         this.cdr.detectChanges();
     }
 
@@ -412,26 +468,37 @@ export class ComponentsComponent implements OnInit, OnDestroy {
 
     private updateSelectedNodeState() {
         if (!this.selectedNode) return;
-        
+
         const instance = this.selectedNode.instance;
-        const newState: Record<string, any> = {};
-        
+        const entries: StateEntry[] = [];
+
         // Extract public properties (skip private/angular internal)
         try {
             for (const key in instance) {
                 // Ignore Angular internals and private convention
                 if (key.startsWith('_')) continue;
                 if (key === 'constructor') continue;
-                
-                newState[key] = instance[key];
+
+                let value = instance[key];
+                let isSig = false;
+                if (isSignal(value)) {
+                    // Read the current value. Safe outside any reactive context — no graph dependency is created.
+                    try {
+                        value = (value as () => unknown)();
+                        isSig = true;
+                    } catch {
+                        // signal threw on read — leave the raw reference so the user at least sees something
+                    }
+                }
+
+                entries.push({ key, value, isSignal: isSig });
             }
         } catch (e) {
             console.warn('Could not extract state fully', e);
         }
-        
-        // Only trigger CD if state actually changed structurally or values changed
+
         this.ngZone.run(() => {
-            this.selectedNodeState = newState;
+            this.selectedNodeStateEntries = entries;
             this.cdr.detectChanges();
         });
     }
@@ -447,8 +514,61 @@ export class ComponentsComponent implements OnInit, OnDestroy {
         return null;
     }
 
-    hasState(state: Record<string, any>): boolean {
-        return Object.keys(state).length > 0;
+    highlight(el: HTMLElement) {
+        this.clearHighlight();
+        this.highlightEl = el;
+        this.prevOutline = el.style.outline;
+        this.prevOutlineOffset = el.style.outlineOffset;
+        el.style.outline = '2px solid oklch(69.02% 0.277 332.77)';
+        el.style.outlineOffset = '2px';
+    }
+
+    clearHighlight() {
+        if (this.highlightEl) {
+            this.highlightEl.style.outline = this.prevOutline;
+            this.highlightEl.style.outlineOffset = this.prevOutlineOffset;
+            this.highlightEl = null;
+        }
+    }
+
+    canOpenInEditor(): boolean {
+        if (this.config?.editor === false) return false;
+        const inst = this.selectedNode?.instance;
+        return !!(inst?.constructor as any)?.ɵcmp?.debugInfo?.filePath;
+    }
+
+    openSelectedInEditor() {
+        const inst = this.selectedNode?.instance;
+        const cmp = (inst?.constructor as any)?.ɵcmp;
+        const filePath: string | undefined = cmp?.debugInfo?.filePath;
+        if (!filePath) return;
+
+        const projectRoot = this.config?.projectRoot;
+        const editor = this.config?.editor ?? 'vscode';
+        if (editor === false) return;
+
+        const line = cmp.debugInfo.lineNumber || 1;
+        const col = 1;
+        let fullPath = filePath;
+        if (projectRoot) {
+            fullPath = projectRoot.replace(/\/$/, '') + '/' + filePath.replace(/^\//, '');
+        }
+
+        const a = document.createElement('a');
+        if (editor === 'vscode' || editor === 'code') {
+            a.href = `vscode://file${fullPath}:${line}:${col}`;
+        } else if (editor === 'cursor') {
+            a.href = `cursor://file${fullPath}:${line}:${col}`;
+        } else if (editor === 'webstorm') {
+            a.href = `webstorm://open?file=${fullPath}&line=${line}&column=${col}`;
+        } else if (editor === 'idea') {
+            a.href = `idea://open?file=${fullPath}&line=${line}&column=${col}`;
+        } else {
+            // Custom editor (e.g. antigravity) — dev-server endpoint handles the rest.
+            fetch(`/__open-in-editor?file=${encodeURIComponent(fullPath)}`);
+            return;
+        }
+        a.click();
     }
 
     getValueType(value: any): string {

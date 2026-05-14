@@ -15,6 +15,7 @@ interface MatchedRoute {
     path: string;
     componentName: string;
     guards: string[];
+    routeRef: Route;
 }
 
 @Component({
@@ -99,10 +100,15 @@ interface MatchedRoute {
                     </thead>
                     <tbody>
                         @for (r of allRoutes; track r.path) {
-                            <tr (click)="navigateByRoute(r.path)" [class.active-row]="r.path === currentUrl">
+                            <tr
+                                (click)="navigateByRoute(r.path)"
+                                [class.active-row]="matchedRouteRefs.has(r.routeRef)"
+                                [class.has-params]="hasParams(r.path)"
+                            >
                                 <td class="path-cell">
-                                    @if (r.path === currentUrl) { <span class="badge active">active</span> }
+                                    @if (matchedRouteRefs.has(r.routeRef)) { <span class="badge active">active</span> }
                                     <span class="path-text">/{{ r.path }}</span>
+                                    @if (hasParams(r.path)) { <span class="badge params" title="Route requires params — click disabled">params</span> }
                                 </td>
                                 <td class="name-cell">
                                     {{ r.componentName }}
@@ -277,6 +283,25 @@ interface MatchedRoute {
             font-family: 'Inter', sans-serif;
         }
 
+        .badge.params {
+            background: rgba(168, 139, 250, 0.15);
+            color: #a78bfa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-family: 'Inter', sans-serif;
+            margin-left: 6px;
+        }
+
+        .routes-table.interactive tbody tr.has-params {
+            cursor: default;
+        }
+        .routes-table.interactive tbody tr.has-params:hover {
+            background: transparent;
+        }
+
         .path-text {
             color: #e2e8f0;
         }
@@ -322,6 +347,7 @@ export class RoutesComponent implements OnInit, OnDestroy {
     currentUrl = '';
     allRoutes: ParsedRoute[] = [];
     matchedRoutes: MatchedRoute[] = [];
+    matchedRouteRefs = new Set<Route>();
 
     ngOnInit() {
         if (!this.router) return;
@@ -349,27 +375,34 @@ export class RoutesComponent implements OnInit, OnDestroy {
         
         this.currentUrl = this.router.url;
         
-        // Build matched routes
+        // Build matched routes + collect their route configs so the All Routes
+        // table can highlight by reference (works for parameterized routes too).
         this.matchedRoutes = [];
+        this.matchedRouteRefs = new Set<Route>();
         let currentSnapshot: ActivatedRouteSnapshot | null = this.router.routerState.snapshot.root;
-        
+
         while (currentSnapshot) {
             if (currentSnapshot.routeConfig) {
                 const config = currentSnapshot.routeConfig;
-                // Reconstruct full path for the matched route section roughly
                 const pathUrl = currentSnapshot.url.map(s => s.path).join('/');
-                
+
                 this.matchedRoutes.push({
                     path: pathUrl || (config.path ?? '/'),
                     componentName: this.getComponentName(config),
-                    guards: this.getGuards(config)
+                    guards: this.getGuards(config),
+                    routeRef: config,
                 });
+                this.matchedRouteRefs.add(config);
             }
-            
+
             currentSnapshot = currentSnapshot.firstChild;
         }
 
         this.cdr.detectChanges();
+    }
+
+    hasParams(path: string): boolean {
+        return path.includes(':') || path.includes('**');
     }
 
     private parseRoutes(routes: Route[], parentPath = ''): ParsedRoute[] {
@@ -450,12 +483,13 @@ export class RoutesComponent implements OnInit, OnDestroy {
     }
 
     navigateByRoute(path: string) {
-        if (this.router && path) {
-            let targetPath = path;
-            if (!targetPath.startsWith('/')) {
-                targetPath = '/' + targetPath;
-            }
-            this.router.navigateByUrl(targetPath);
+        if (!this.router || !path) return;
+        // Refuse to navigate to a literal :param/** path — it would create a broken URL.
+        if (this.hasParams(path)) return;
+        let targetPath = path;
+        if (!targetPath.startsWith('/')) {
+            targetPath = '/' + targetPath;
         }
+        this.router.navigateByUrl(targetPath);
     }
 }
