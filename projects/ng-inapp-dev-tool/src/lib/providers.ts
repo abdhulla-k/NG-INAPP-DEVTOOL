@@ -19,6 +19,7 @@ import { DevToolShellComponent } from './dev-tool-shell.component';
 import { OverviewComponent } from './plugins/overview/overview.component';
 import { ComponentsComponent } from './plugins/components/components.component';
 import { RoutesComponent } from './plugins/routes/routes.component';
+import { AssetsComponent } from './plugins/assets/assets.component';
 
 // Setup build in plugins here
 const BUILT_IN_PLUGINS: Plugin[] = [
@@ -39,6 +40,12 @@ const BUILT_IN_PLUGINS: Plugin[] = [
         icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="6" height="4" rx="1"/><rect x="15" y="4" width="6" height="4" rx="1"/><rect x="15" y="10" width="6" height="4" rx="1"/><rect x="15" y="16" width="6" height="4" rx="1"/><polyline points="9 12 12 12 12 6 15 6"/><line x1="12" y1="12" x2="15" y2="12"/><polyline points="12 12 12 18 15 18"/></svg>',
         order: 2,
         component: RoutesComponent
+    },
+    {
+        name: 'Assets',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+        order: 3,
+        component: AssetsComponent
     }
 ];
 
