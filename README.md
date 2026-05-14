@@ -8,9 +8,9 @@ Angular is strong, but sometimes development can feel slow. Our purpose is simpl
 
 We think key debugging and analysis tools should be available exactly where you need them—inside your app.
 
-## 💡 Key Features (Planned)
-
 This devtool will give you instant information about different parts of your Angular app:
+
+- **Overview Landing Page:** A beautiful, built-in dashboard that displays your Angular version (v19.2), component count, page count, and active plugins at a glance.
 
 - **Source Code Navigation (Open in Editor):** Click any component in your running app to instantly open its source file in your code editor. This will help you find and edit code much faster.
 

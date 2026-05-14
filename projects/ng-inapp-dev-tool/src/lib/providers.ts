@@ -16,9 +16,31 @@ import { DevToolConfig, NG_INAPP_DEV_TOOL_CONFIG } from './config.token';
 import { DevToolShellComponent } from './dev-tool-shell.component';
 
 // Import build in plugins
+import { OverviewComponent } from './plugins/overview/overview.component';
+import { ComponentsComponent } from './plugins/components/components.component';
+import { RoutesComponent } from './plugins/routes/routes.component';
 
 // Setup build in plugins here
-const BUILT_IN_PLUGINS: Plugin[] = [];
+const BUILT_IN_PLUGINS: Plugin[] = [
+    {
+        name: 'Overview',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>',
+        order: 0,
+        component: OverviewComponent
+    },
+    {
+        name: 'Components',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="3" width="4" height="4" rx="1"/><rect x="4" y="17" width="4" height="4" rx="1"/><rect x="10" y="17" width="4" height="4" rx="1"/><rect x="16" y="17" width="4" height="4" rx="1"/><path d="M12 7v5"/><path d="M6 12v5"/><path d="M18 12v5"/><path d="M6 12h12"/></svg>',
+        order: 1,
+        component: ComponentsComponent
+    },
+    {
+        name: 'Routes',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="6" height="4" rx="1"/><rect x="15" y="4" width="6" height="4" rx="1"/><rect x="15" y="10" width="6" height="4" rx="1"/><rect x="15" y="16" width="6" height="4" rx="1"/><polyline points="9 12 12 12 12 6 15 6"/><line x1="12" y1="12" x2="15" y2="12"/><polyline points="12 12 12 18 15 18"/></svg>',
+        order: 2,
+        component: RoutesComponent
+    }
+];
 
 
 // Provider to return our plugins
