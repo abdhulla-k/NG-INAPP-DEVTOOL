@@ -564,11 +564,24 @@ export class ComponentsComponent implements OnInit, OnDestroy {
         } else if (editor === 'idea') {
             a.href = `idea://open?file=${fullPath}&line=${line}&column=${col}`;
         } else {
-            // Custom editor (e.g. antigravity) — dev-server endpoint handles the rest.
-            fetch(`/__open-in-editor?file=${encodeURIComponent(fullPath)}`);
+            // Custom editor (e.g. antigravity) — relies on a /__open-in-editor endpoint on the dev server.
+            const editorName = String(editor);
+            fetch(`/__open-in-editor?file=${encodeURIComponent(fullPath)}`)
+                .then(res => {
+                    if (!res.ok) this.warnOpenEditorFailed(editorName, `dev server returned ${res.status}`);
+                })
+                .catch(err => this.warnOpenEditorFailed(editorName, err?.message ?? String(err)));
             return;
         }
         a.click();
+    }
+
+    private warnOpenEditorFailed(editor: string, reason: string): void {
+        console.warn(
+            `[ng-inapp-dev-tool] Open-in-editor failed for editor "${editor}" — ${reason}. ` +
+            `The "${editor}" handler relies on a /__open-in-editor endpoint on your dev server, which Angular's default builder does not provide. ` +
+            `Use editor: 'vscode' | 'code' | 'cursor' | 'webstorm' | 'idea' (URL schemes), or install a launch-editor middleware.`
+        );
     }
 
     getValueType(value: any): string {
