@@ -119,8 +119,8 @@ interface StateEntry {
             height: 100%;
             width: 100%;
             font-family: 'Inter', sans-serif;
-            color: var(--gray-300);
-            background: var(--gray-900);
+            color: var(--ngidt-gray-300);
+            background: var(--ngidt-gray-900);
             overflow: hidden;
         }
 
@@ -133,19 +133,19 @@ interface StateEntry {
         /* Tree Pane */
         .tree-pane {
             width: 50%;
-            border-right: 1px solid var(--gray-700);
+            border-right: 1px solid var(--ngidt-gray-700);
             display: flex;
             flex-direction: column;
-            background: var(--gray-900);
+            background: var(--ngidt-gray-900);
         }
 
         .pane-header {
             padding: 12px 16px;
-            border-bottom: 1px solid var(--gray-700);
+            border-bottom: 1px solid var(--ngidt-gray-700);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: var(--gray-800);
+            background: var(--ngidt-gray-800);
         }
 
         .pane-header h3 {
@@ -159,7 +159,7 @@ interface StateEntry {
         .refresh-btn {
             background: transparent;
             border: none;
-            color: var(--gray-400);
+            color: var(--ngidt-gray-400);
             cursor: pointer;
             padding: 4px;
             border-radius: 4px;
@@ -169,7 +169,7 @@ interface StateEntry {
         }
         .refresh-btn:hover {
             color: white;
-            background: var(--gray-700);
+            background: var(--ngidt-gray-700);
         }
         .refresh-btn .icon {
             width: 16px;
@@ -201,12 +201,12 @@ interface StateEntry {
         }
         
         .node-content:hover {
-            background: var(--gray-800);
+            background: var(--ngidt-gray-800);
         }
 
         .tree-node.selected > .node-content {
             background: rgba(255, 65, 248, 0.15);
-            color: var(--vivid-pink);
+            color: var(--ngidt-vivid-pink);
         }
 
         .caret {
@@ -216,12 +216,12 @@ interface StateEntry {
             align-items: center;
             justify-content: center;
             margin-right: 4px;
-            color: var(--gray-400);
+            color: var(--ngidt-gray-400);
             transition: transform 0.15s ease;
             border-radius: 4px;
         }
         .caret:hover {
-            background: var(--gray-700);
+            background: var(--ngidt-gray-700);
             color: white;
         }
         .caret.expanded {
@@ -236,7 +236,7 @@ interface StateEntry {
         }
 
         .node-bracket {
-            color: var(--gray-500);
+            color: var(--ngidt-gray-500);
             margin: 0 2px;
         }
         .tree-node.selected .node-bracket {
@@ -246,7 +246,7 @@ interface StateEntry {
             color: #4ade80; /* Nuxt green for components, or vivid-pink */
         }
         .tree-node.selected .node-name {
-            color: var(--vivid-pink);
+            color: var(--ngidt-vivid-pink);
             font-weight: 500;
         }
 
@@ -255,7 +255,7 @@ interface StateEntry {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: var(--gray-900);
+            background: var(--ngidt-gray-900);
             overflow: hidden;
         }
 
@@ -269,7 +269,7 @@ interface StateEntry {
 
         .state-section h4 {
             margin: 0 0 12px 0;
-            color: var(--gray-400);
+            color: var(--ngidt-gray-400);
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -305,7 +305,7 @@ interface StateEntry {
         }
         .open-btn {
             background: transparent;
-            border: 1px solid var(--gray-700);
+            border: 1px solid var(--ngidt-gray-700);
             color: #cbd5e1;
             cursor: pointer;
             padding: 4px 10px;
@@ -318,23 +318,23 @@ interface StateEntry {
         }
         .open-btn:hover {
             color: white;
-            background: var(--gray-700);
+            background: var(--ngidt-gray-700);
         }
         .open-btn svg { width: 14px; height: 14px; }
         .state-separator {
-            color: var(--gray-500);
+            color: var(--ngidt-gray-500);
             margin-right: 6px;
         }
         
         .state-value.string { color: #ce9178; } /* Orange/Brown */
         .state-value.number { color: #b5cea8; } /* Light green */
         .state-value.boolean { color: #569cd6; } /* Blue */
-        .state-value.object { color: var(--gray-300); }
+        .state-value.object { color: var(--ngidt-gray-300); }
         .state-value.function { color: #dcdcaa; font-style: italic; } /* Yellow */
         .state-value.undefined { color: #569cd6; font-style: italic; }
 
         .empty-state {
-            color: var(--gray-500);
+            color: var(--ngidt-gray-500);
             padding: 20px;
             text-align: center;
             font-family: 'Inter', sans-serif;
