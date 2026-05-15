@@ -362,8 +362,13 @@ export class InspectorOverlayComponent {
                 } else {
                     // Fallback to dev server endpoint if custom editor (e.g. antigravity)
                     // The editor name must be set via LAUNCH_EDITOR env var on the server
+                    const editorName = String(editor);
                     const params = new URLSearchParams({ file: fullPath });
-                    fetch(`/__open-in-editor?${params.toString()}`);
+                    fetch(`/__open-in-editor?${params.toString()}`)
+                        .then(res => {
+                            if (!res.ok) this.warnOpenEditorFailed(editorName, `dev server returned ${res.status}`);
+                        })
+                        .catch(err => this.warnOpenEditorFailed(editorName, err?.message ?? String(err)));
                 }
             } catch (error) {
                 console.error('[ng-inapp-dev-tool] Failed to open in editor:', error);
@@ -572,5 +577,13 @@ export class InspectorOverlayComponent {
     /** Check if an element belongs to the devtool's own UI (shell, overlay, panel) */
     private isDevToolElement(el: HTMLElement): boolean {
         return !!el.closest('ng-inapp-dev-tool-shell');
+    }
+
+    private warnOpenEditorFailed(editor: string, reason: string): void {
+        console.warn(
+            `[ng-inapp-dev-tool] Open-in-editor failed for editor "${editor}" — ${reason}. ` +
+            `The "${editor}" handler relies on a /__open-in-editor endpoint on your dev server, which Angular's default builder does not provide. ` +
+            `Use editor: 'vscode' | 'code' | 'cursor' | 'webstorm' | 'idea' (URL schemes), or install a launch-editor middleware.`
+        );
     }
 }

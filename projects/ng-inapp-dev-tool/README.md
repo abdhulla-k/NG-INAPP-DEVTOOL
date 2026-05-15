@@ -1,63 +1,96 @@
-# NgInappDevTool
+# ng-inapp-dev-tool
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.0.
+In-app developer tools for Angular — inspect components, routes, signals, and assets directly inside your running app. Inspired by [Nuxt DevTools](https://devtools.nuxt.com).
 
-## Code scaffolding
+The dev tool mounts itself into your app at startup, gates on `isDevMode()`, and is tree-shaken out of production builds. Zero runtime cost when shipped.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Install
 
 ```bash
-ng generate --help
+npm install ng-inapp-dev-tool --save-dev
 ```
 
-## Building
+Requires **Angular 19.2+**. Peer dependencies: `@angular/common`, `@angular/core`, `@angular/router`, `@angular/platform-browser`.
 
-To build the library, run:
+## Usage
 
-```bash
-ng build ng-inapp-dev-tool
+Add `provideInAppDevTools()` to your application config:
+
+```ts
+// app.config.ts
+import { ApplicationConfig } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { provideInAppDevTools } from 'ng-inapp-dev-tool';
+
+import { routes } from './app.routes';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes),
+    provideInAppDevTools({
+      editor: 'vscode',
+      projectRoot: '/absolute/path/to/your/repo',
+    }),
+  ],
+};
 ```
 
-This command will compile your project, and the build artifacts will be placed in the `dist/` directory.
+That's it. Run `ng serve` and a draggable toggle button appears in the bottom-right corner. Click it to open the dev panel.
 
-### Publishing the Library
+## Configuration
 
-Once the project is built, you can publish your library by following these steps:
-
-1. Navigate to the `dist` directory:
-   ```bash
-   cd dist/ng-inapp-dev-tool
-   ```
-
-2. Run the `npm publish` command to publish your library to the npm registry:
-   ```bash
-   npm publish
-   ```
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
+```ts
+provideInAppDevTools({
+  plugins?: Plugin[];           // your custom plugins (built-ins are always added)
+  editor?: string | false;      // 'vscode' | 'code' | 'cursor' | 'webstorm' | 'idea' | string | false
+  projectRoot?: string;         // absolute filesystem path of your project root
+});
 ```
 
-## Running end-to-end tests
+| Option | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `plugins` | `Plugin[]` | `[]` | Custom plugins. Built-ins are always merged in; user plugins with a colliding name are dropped. |
+| `editor` | `string \| false` | `'vscode'` | Used by "Open in editor" actions. URL-scheme editors (`vscode`, `code`, `cursor`, `webstorm`, `idea`) work out of the box. Any other value falls back to `fetch('/__open-in-editor?file=...')`, which requires your dev server to expose that endpoint (e.g. via [`launch-editor-middleware`](https://github.com/yyx990803/launch-editor)). Set to `false` to disable open-in-editor entirely. |
+| `projectRoot` | `string` | — | Absolute filesystem path of your repo. Required for "Open in editor" — the library composes `${projectRoot}/${componentFilePath}` into the editor URL. |
 
-For end-to-end (e2e) testing, run:
+> **Tip on `projectRoot`:** keep it out of source control. Create a gitignored `local.config.ts` that exports `projectRoot` and import it from `app.config.ts`. See the workspace's test app for an example pattern.
 
-```bash
-ng e2e
+## Built-in plugins
+
+| Plugin | What it does |
+| --- | --- |
+| **Overview** | Landing dashboard with Angular version, plugin count, and an at-a-glance app summary. |
+| **Components** | Live tree of every Angular component on the page. Inspect state, unwrap signals (signals are auto-detected via `isSignal()` and rendered as their underlying value), and jump to source. Hover a node to outline its host element in the page. |
+| **Routes** | Every registered route, the active match (parameter-aware), guards, and lazy chunks. One-click navigation for static routes; parameterized routes are flagged and disabled. |
+| **Assets** | Every loaded image, font, script, stylesheet, and fetch — sourced from the Performance API with live updates via `PerformanceObserver`. Type filters, image previews, and on-demand DOM scanning to find which elements reference each asset. |
+| **Inspector** | Point-and-click any element in the page to reveal its component name and source path. Walk up to the parent component, copy a precise selector + component tree (great for pasting into AI agents), or jump to source. |
+
+## Custom plugins
+
+A plugin is just an Angular component plus a name and an icon. See [Core.md](https://github.com/abdhulla-k/NG-INAPP-DEVTOOL/blob/main/Core.md) for the full guide.
+
+```ts
+import { Plugin } from 'ng-inapp-dev-tool';
+import { MyToolComponent } from './my-tool.component';
+
+const myPlugin: Plugin = {
+  name: 'My Tool',
+  icon: '<svg ...>...</svg>',
+  order: 10,
+  component: MyToolComponent,
+};
+
+provideInAppDevTools({
+  plugins: [myPlugin],
+});
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## Production behavior
 
-## Additional Resources
+- The provider returns empty providers when `isDevMode()` is false — no runtime cost.
+- The shell only mounts in browser environments (gated on `isPlatformBrowser`), so SSR isn't affected.
+- All CSS variables are namespaced with `--ngidt-*` so the dev tool's styling can never collide with your design system.
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+## License
+
+MIT
