@@ -7,174 +7,583 @@ import {
     inject,
     ViewChild,
     Renderer2,
+    ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { NG_INAPP_DEV_TOOL_CONFIG, DevToolConfig } from './config.token';
 
+/** Holds resolved component metadata for display and actions */
+interface ComponentInfo {
+    name: string;
+    path: string;
+    domPath: string;
+}
+
 @Component({
     selector: 'ng-inspector-overlay',
     standalone: true,
     imports: [CommonModule],
-    template: ` <div #highlighter class="highlighter"></div> `,
-    styles: [
-        `
+    template: `
+        <!-- Highlighter box -->
+        <div #highlighter class="highlighter">
+            <div #label class="highlighter-label"></div>
+        </div>
+
+        <!-- Info panel (shown after click) -->
+        @if (selectedInfo) {
+            <div
+                class="info-panel"
+                [style.top.px]="panelTop"
+                [style.left.px]="panelLeft"
+                (mousedown)="onPanelInteraction($event)"
+                (click)="onPanelInteraction($event)"
+            >
+                <div class="info-actions">
+                    <button class="action-btn" (click)="goToParent(); $event.stopPropagation()" title="Select parent component">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 12 6 7 11"></polyline><polyline points="17 18 12 13 7 18"></polyline></svg>
+                        Parent
+                    </button>
+                    <button class="action-btn" (click)="openInEditor(); $event.stopPropagation()" title="Open in editor">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        Open
+                    </button>
+                    <button class="action-btn" (click)="copyInfo(); $event.stopPropagation()" title="Copy component info">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        {{ copyLabel }}
+                    </button>
+                    <button class="action-btn close-btn" (click)="closePanel(); $event.stopPropagation()" title="Close">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="info-details">
+                    <div class="info-row">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        <span class="info-path">{{ selectedInfo.path || 'unknown' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                        <span class="info-dom">{{ selectedInfo.domPath }}</span>
+                    </div>
+                </div>
+            </div>
+        }
+    `,
+    styles: [`
         :host {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
             z-index: 9990;
             cursor: crosshair;
             background-color: rgba(0, 0, 0, 0);
         }
+        :host(.panel-open) { cursor: default; }
 
         .highlighter {
             position: fixed;
-            background-color: #f637e333;
-            border: 1px solid #5a0051ff;
-            border-radius: 3px;
+            background-color: oklch(69.02% 0.277 332.77 / 0.2);
+            border: 1px solid oklch(69.02% 0.277 332.77);
+            border-radius: 4px;
             pointer-events: none;
             z-index: 9991;
+            transition: all 0.1s ease-out;
         }
-    `,
-    ],
+
+        .highlighter-label {
+            position: absolute;
+            background-color: oklch(69.02% 0.277 332.77);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            left: 0;
+        }
+        .highlighter-label.bottom { bottom: -22px; top: auto; }
+        .highlighter-label.top { top: -22px; bottom: auto; }
+
+        /* ── Info Panel ── */
+        .info-panel {
+            position: fixed;
+            z-index: 9995;
+            background: oklch(19.37% 0.006 300.98);
+            border: 1px solid oklch(36.98% 0.014 302.71);
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            min-width: 300px;
+            max-width: 480px;
+            overflow: hidden;
+            animation: panelIn 0.15s ease-out;
+        }
+        @keyframes panelIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .info-actions {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding: 6px 8px;
+            border-bottom: 1px solid oklch(36.98% 0.014 302.71);
+        }
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: transparent;
+            border: none;
+            color: oklch(70.9% 0.015 304.04);
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s ease;
+        }
+        .action-btn:hover {
+            background: oklch(36.98% 0.014 302.71);
+            color: white;
+        }
+        .close-btn { margin-left: auto; padding: 4px 6px; }
+
+        .info-details { padding: 8px 12px; }
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 3px 0;
+            color: oklch(70.9% 0.015 304.04);
+            font-size: 12px;
+        }
+        .info-row svg { flex-shrink: 0; color: oklch(69.02% 0.277 332.77); }
+        .info-path {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 11px;
+            color: oklch(69.02% 0.277 332.77);
+        }
+        .info-dom {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 11px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    `],
 })
 export class InspectorOverlayComponent {
-    // Create an event emiter to emit when selecting an element.
-    // It will utilize in shell component to toggle and also we can use in other purpose later
     @Output() inspectEnd = new EventEmitter<void>();
 
-    // Inject ElementRef to get a reference to this component's host element
     private hostElement: HTMLElement = inject(ElementRef).nativeElement;
-
-    // Inject renderer to manipulate the UI
     private renderer = inject(Renderer2);
-
-    // Inject DevToolConfig to check editor preferences
+    private cdr = inject(ChangeDetectorRef);
     private config = inject<DevToolConfig>(NG_INAPP_DEV_TOOL_CONFIG, { optional: true });
 
-    // Get hilighter to mange size and manipulate it
-    @ViewChild('highlighter', { static: true })
-    private highlighter!: ElementRef<HTMLElement>;
+    @ViewChild('highlighter', { static: true }) private highlighter!: ElementRef<HTMLElement>;
+    @ViewChild('label', { static: true }) private label!: ElementRef<HTMLElement>;
 
-    // variable to save last selected element
     private lastTarget: HTMLElement | null = null;
 
-    // Listen for mousemove to get access to the elments
+    // State: currently selected component info (shown in the panel)
+    selectedInfo: ComponentInfo | null = null;
+    // The raw element the user clicked on (needed for "Parent" navigation)
+    private selectedElement: HTMLElement | null = null;
+    // Label for the copy button (toggles briefly to "Copied!")
+    copyLabel = 'Info';
+    // Panel position (bound via template)
+    panelTop = 0;
+    panelLeft = 0;
+    // Timestamp guard to prevent immediate close on same-frame click
+    private panelOpenedAt = 0;
+
+    // ─── Hover Highlighting ───
     @HostListener('document:mousemove', ['$event'])
     onMouseMove(event: MouseEvent) {
-        // Temporarily hide the overlay
+        // Don't update highlight while info panel is open
+        if (this.selectedInfo) return;
+
         this.hostElement.style.display = 'none';
-
-        // Get the element at the cursor's position
-        const elementUnderCursor = document.elementFromPoint(
-            event.clientX,
-            event.clientY
-        ) as HTMLElement;
-
-        // Immediately show the overlay again
+        const el = document.elementFromPoint(event.clientX, event.clientY) as HTMLElement;
         this.hostElement.style.display = 'block';
 
-        // Only calculate th size if hovered element not last lastTarget
-        if (elementUnderCursor && this.lastTarget !== elementUnderCursor) {
-            // Set last targe
-            this.lastTarget = elementUnderCursor;
+        // Skip devtool's own UI elements
+        if (!el || this.isDevToolElement(el)) return;
 
-            // Get the position and dimensions of the target element
-            const rect = elementUnderCursor.getBoundingClientRect();
-            const highlighterEl = this.highlighter.nativeElement;
-
-            //  Use the Renderer to apply the styles to our highlighter div
-            this.renderer.setStyle(highlighterEl, 'width', `${rect.width}px`);
-            this.renderer.setStyle(highlighterEl, 'height', `${rect.height}px`);
-            this.renderer.setStyle(highlighterEl, 'top', `${rect.top}px`);
-            this.renderer.setStyle(highlighterEl, 'left', `${rect.left}px`);
+        if (this.lastTarget !== el) {
+            this.lastTarget = el;
+            this.updateHighlighter(el);
         }
     }
 
-
-    private findComponentSource(element: HTMLElement | null): string | null {
-        if (!element) {
-            return null;
-        }
-        
-        // Attempt to access Angular's global debug info
-        const ngDebug = (window as any).ng;
-
-        if (ngDebug) {
-            let comp = ngDebug.getComponent(element);
-            if (!comp) {
-                comp = ngDebug.getOwningComponent(element);
-            }
-            if (comp && comp.constructor) {
-                // Read Angular 17+ component debug metadata
-                const cmpMeta = (comp.constructor as any).ɵcmp;
-                if (cmpMeta && cmpMeta.debugInfo && cmpMeta.debugInfo.filePath) {
-                    let sourcePath = cmpMeta.debugInfo.filePath;
-                    if (cmpMeta.debugInfo.lineNumber) {
-                        sourcePath += `:${cmpMeta.debugInfo.lineNumber}`;
-                    }
-                    return sourcePath;
-                }
-            }
-        }
-
-        return this.findComponentSource(element.parentElement);
+    /** Prevent clicks inside the panel from bubbling to the document handler */
+    onPanelInteraction(event: Event) {
+        event.stopPropagation();
     }
 
-    // Listen for the click event on document to get the elment clicked to open in editer
+    // ─── Click → Show Info Panel ───
     @HostListener('document:click', ['$event'])
     onClick(event: MouseEvent) {
-        // Stop default behavious
+        // If panel is already open and user clicked outside it, close & resume
+        if (this.selectedInfo) {
+            // Guard: don't close if panel was just opened (same frame protection)
+            if (Date.now() - this.panelOpenedAt < 200) return;
+            this.closePanel();
+            return;
+        }
+
         event.preventDefault();
         event.stopPropagation();
 
         this.hostElement.style.display = 'none';
-        // Get clicked element 
-        const clickedElement = document.elementFromPoint(
-            event.clientX,
-            event.clientY
-        ) as HTMLElement;
+        const clickedEl = document.elementFromPoint(event.clientX, event.clientY) as HTMLElement;
         this.hostElement.style.display = 'block';
 
-        const sourcePath = this.findComponentSource(clickedElement);
-        if (sourcePath) {
-            console.log('[ng-inapp-dev-tool] Component source:', sourcePath);
-            
-            const editorConfig = this.config?.editor;
-            const projectRoot = this.config?.projectRoot;
+        // Skip devtool's own UI elements
+        if (!clickedEl || this.isDevToolElement(clickedEl)) return;
 
-            // Allow opting out of the editor opening feature via configuration
-            if (editorConfig !== false) {
-                try {
-                    if (!editorConfig || editorConfig === 'vscode' || editorConfig === true) {
-                        // Use Vite's native __open-in-editor middleware which runs in Angular Dev Server
-                        fetch(`/__open-in-editor?file=${sourcePath}`);
-                    } else if (typeof editorConfig === 'string') {
-                        // Use custom URL scheme for other editors
-                        // Note: Custom schemas usually require absolute paths.
-                        let fullPath = sourcePath;
-                        if (projectRoot) {
-                            // Ensure projectRoot ends with a slash and sourcePath doesn't start with one
-                            const safeRoot = projectRoot.replace(/\/$/, '') + '/';
-                            const safePath = sourcePath.replace(/^\//, '');
-                            fullPath = `${safeRoot}${safePath}`;
-                        }
-                        window.open(`${editorConfig}://file/${fullPath}`, '_blank');
-                    }
-                } catch (error) {
-                    console.error('[ng-inapp-dev-tool] Failed to open in editor:', error);
+        const info = this.getComponentInfo(clickedEl);
+        if (!info) return;
+
+        // Build the DOM path from the clicked element up to the component host
+        const domPath = this.buildDomPath(clickedEl);
+
+        // Calculate panel position before rendering
+        this.calculatePanelPosition(event.clientX, event.clientY);
+
+        this.selectedInfo = { ...info, domPath };
+        this.selectedElement = clickedEl;
+        this.copyLabel = 'Info';
+        this.panelOpenedAt = Date.now();
+        this.renderer.addClass(this.hostElement, 'panel-open');
+        this.cdr.detectChanges();
+    }
+
+    // ─── Escape to close ───
+    @HostListener('document:keydown.escape')
+    onEscape() {
+        if (this.selectedInfo) {
+            this.closePanel();
+        } else {
+            this.inspectEnd.emit();
+        }
+    }
+
+    // ─── Actions ───
+
+    /** Navigate to the parent DOM element (one level up per click) */
+    goToParent() {
+        if (!this.selectedElement) return;
+
+        const parentEl = this.selectedElement.parentElement;
+        if (!parentEl) return;
+
+        // Don't walk above the document body
+        if (parentEl === document.documentElement || parentEl === document.body) return;
+
+        const info = this.getComponentInfo(parentEl);
+        if (!info) return;
+
+        this.selectedElement = parentEl;
+        this.selectedInfo = { ...info, domPath: this.buildDomPath(parentEl) };
+        this.updateHighlighter(parentEl);
+        this.cdr.detectChanges();
+
+        const rect = parentEl.getBoundingClientRect();
+        this.calculatePanelPosition(rect.left + rect.width / 2, rect.top);
+    }
+
+    /** Open the component source in the configured editor.
+     *  Prefers the HTML template file if one exists (by convention: foo.component.html),
+     *  otherwise falls back to the .ts file.
+     */
+    openInEditor() {
+        if (!this.selectedInfo?.path) return;
+        const sourcePath = this.selectedInfo.path;
+        const editorConfig = this.config?.editor;
+        const projectRoot = this.config?.projectRoot;
+
+        if (editorConfig === false) return;
+
+        // Strip line:col suffix to get a clean file path
+        const cleanPath = sourcePath.replace(/:\d+.*$/, '');
+        // Try the HTML template path (foo.component.ts → foo.component.html)
+        const htmlPath = cleanPath.replace(/\.ts$/, '.html');
+        const hasHtmlCandidate = htmlPath !== cleanPath;
+
+        // Resolve which file to open (prefer HTML template if it exists)
+        const openFile = (filePath: string) => {
+            try {
+                // Parse file path to separate path from line:col
+                const cleanFilePath = filePath.replace(/:\d+.*$/, '');
+                
+                // Try to extract line and col if available for precise jumping
+                let line = '1';
+                let col = '1';
+                const match = filePath.match(/:(\d+)(?::(\d+))?$/);
+                if (match) {
+                    line = match[1];
+                    if (match[2]) col = match[2];
                 }
+
+                // Build the full absolute path if projectRoot is configured
+                let fullPath = cleanFilePath;
+                if (projectRoot) {
+                    const safeRoot = projectRoot.replace(/\/$/, '') + '/';
+                    const safePath = cleanFilePath.replace(/^\//, '');
+                    fullPath = `${safeRoot}${safePath}`;
+                }
+
+                // Default to vscode if not specified
+                const editor = (this.config?.editor || 'vscode');
+                
+                if (editor === 'vscode' || editor === 'code') {
+                    const a = document.createElement('a');
+                    a.href = `vscode://file${fullPath}:${line}:${col}`;
+                    a.click();
+                } else if (editor === 'cursor') {
+                    const a = document.createElement('a');
+                    a.href = `cursor://file${fullPath}:${line}:${col}`;
+                    a.click();
+                } else if (editor === 'webstorm') {
+                    const a = document.createElement('a');
+                    a.href = `webstorm://open?file=${fullPath}&line=${line}&column=${col}`;
+                    a.click();
+                } else if (editor === 'idea') {
+                    const a = document.createElement('a');
+                    a.href = `idea://open?file=${fullPath}&line=${line}&column=${col}`;
+                    a.click();
+                } else {
+                    // Fallback to dev server endpoint if custom editor (e.g. antigravity)
+                    // The editor name must be set via LAUNCH_EDITOR env var on the server
+                    const editorName = String(editor);
+                    const params = new URLSearchParams({ file: fullPath });
+                    fetch(`/__open-in-editor?${params.toString()}`)
+                        .then(res => {
+                            if (!res.ok) this.warnOpenEditorFailed(editorName, `dev server returned ${res.status}`);
+                        })
+                        .catch(err => this.warnOpenEditorFailed(editorName, err?.message ?? String(err)));
+                }
+            } catch (error) {
+                console.error('[ng-inapp-dev-tool] Failed to open in editor:', error);
+            }
+        };
+
+        if (hasHtmlCandidate) {
+            // Check if the HTML template actually exists by fetching it.
+            // SPA fallback returns the full index.html (starts with <!doctype html>).
+            // A real Vite-processed template returns a JS module, not raw HTML.
+            fetch(`/${htmlPath}`)
+                .then(async res => {
+                    if (!res.ok) return openFile(sourcePath);
+                    const body = await res.text();
+                    const isSpaFallback = body.trimStart().substring(0, 50).toLowerCase().includes('<!doctype');
+                    openFile(isSpaFallback ? sourcePath : htmlPath);
+                })
+                .catch(() => openFile(sourcePath));
+        } else {
+            openFile(sourcePath);
+        }
+    }
+
+    /** Copy component info to clipboard (useful for pasting to AI agents) */
+    copyInfo() {
+        if (!this.selectedInfo) return;
+        
+        const url = window.location.href;
+        const viewport = `${window.innerWidth}x${window.innerHeight}`;
+        const selector = this.buildPreciseSelector(this.selectedElement);
+        const compTree = this.getComponentTree(this.selectedElement);
+        const file = this.selectedInfo.path || 'unknown';
+
+        const text = [
+            `Page URL: ${url}`,
+            `Viewport: ${viewport}`,
+            `Selector: ${selector}`,
+            `Component Tree: ${compTree}`,
+            `File: ${file}`
+        ].join('\n');
+
+        navigator.clipboard.writeText(text).then(() => {
+            this.copyLabel = 'Copied!';
+            this.cdr.detectChanges();
+            setTimeout(() => {
+                this.copyLabel = 'Info';
+                this.cdr.detectChanges();
+            }, 1500);
+        });
+    }
+
+    private buildPreciseSelector(element: HTMLElement | null): string {
+        if (!element) return '';
+        const parts: string[] = [];
+        let el: HTMLElement | null = element;
+        while (el && el.tagName !== 'HTML') {
+            let part = el.tagName.toLowerCase();
+            if (el.id) {
+                part += `#${CSS.escape(el.id)}`;
+                parts.unshift(part);
+                break;
             } else {
-                console.log('[ng-inapp-dev-tool] Editor opening disabled by DevToolConfig.');
+                const className = el.getAttribute('class');
+                if (className) {
+                    const classes = className.split(/\s+/).filter(c => c && !c.startsWith('ng-'));
+                    if (classes.length) {
+                        try {
+                            part += '.' + classes.map(c => CSS.escape(c)).join('.');
+                        } catch (e) {
+                            // ignore CSS escape errors
+                        }
+                    }
+                }
+                
+                if (el.parentElement) {
+                    const siblings = Array.from(el.parentElement.children);
+                    const sameTypeSiblings = siblings.filter(s => s.tagName === el!.tagName);
+                    if (sameTypeSiblings.length > 1) {
+                        const index = sameTypeSiblings.indexOf(el) + 1;
+                        part += `:nth-of-type(${index})`;
+                    }
+                }
+                parts.unshift(part);
+            }
+            if (el.tagName === 'BODY') break;
+            el = el.parentElement;
+        }
+        return parts.join(' > ');
+    }
+
+    private getComponentTree(element: HTMLElement | null): string {
+        if (!element) return '';
+        const parts: string[] = [];
+        let currentEl: HTMLElement | null = element;
+        const ngDebug = (window as any).ng;
+        
+        if (!ngDebug) return this.selectedInfo?.domPath || '';
+
+        while (currentEl && currentEl.tagName !== 'HTML') {
+            const comp = ngDebug.getComponent(currentEl);
+            if (comp) {
+                parts.unshift(comp.constructor.name);
+            }
+            currentEl = currentEl.parentElement;
+        }
+        
+        return parts.length > 0 ? parts.join(' > ') : (this.selectedInfo?.domPath || '');
+    }
+
+    /** Close the info panel and resume hover inspection */
+    closePanel() {
+        this.selectedInfo = null;
+        this.selectedElement = null;
+        this.lastTarget = null;
+        this.renderer.removeClass(this.hostElement, 'panel-open');
+        this.cdr.detectChanges();
+    }
+
+    // ─── Helpers ───
+
+    private updateHighlighter(el: HTMLElement) {
+        const rect = el.getBoundingClientRect();
+        const hEl = this.highlighter.nativeElement;
+        const lEl = this.label.nativeElement;
+
+        const info = this.getComponentInfo(el);
+        if (info) {
+            lEl.textContent = info.name;
+            this.renderer.setStyle(lEl, 'display', 'block');
+            if (rect.top < 30) {
+                this.renderer.addClass(lEl, 'bottom');
+                this.renderer.removeClass(lEl, 'top');
+            } else {
+                this.renderer.addClass(lEl, 'top');
+                this.renderer.removeClass(lEl, 'bottom');
             }
         } else {
-            console.log('[ng-inapp-dev-tool] Could not find an Angular component source for this element.');
+            this.renderer.setStyle(lEl, 'display', 'none');
         }
 
-        // Emit to close inpect mode from shell component
-        this.inspectEnd.emit();
+        this.renderer.setStyle(hEl, 'width', `${rect.width}px`);
+        this.renderer.setStyle(hEl, 'height', `${rect.height}px`);
+        this.renderer.setStyle(hEl, 'top', `${rect.top}px`);
+        this.renderer.setStyle(hEl, 'left', `${rect.left}px`);
+    }
+
+    private getComponentInfo(element: HTMLElement | null): { name: string; path: string } | null {
+        if (!element) return null;
+
+        const ngDebug = (window as any).ng;
+        if (ngDebug) {
+            let comp = ngDebug.getComponent(element);
+            if (!comp) comp = ngDebug.getOwningComponent(element);
+            if (comp && comp.constructor) {
+                const cmpMeta = (comp.constructor as any).ɵcmp;
+                let path = '';
+                if (cmpMeta?.debugInfo?.filePath) {
+                    path = cmpMeta.debugInfo.filePath;
+                    if (cmpMeta.debugInfo.lineNumber) path += `:${cmpMeta.debugInfo.lineNumber}`;
+                }
+                return { name: comp.constructor.name, path };
+            }
+        }
+
+        return this.getComponentInfo(element.parentElement);
+    }
+
+    /** Build a CSS-selector-like path: div > span > h1 */
+    private buildDomPath(element: HTMLElement): string {
+        const parts: string[] = [];
+        let el: HTMLElement | null = element;
+        // Walk up max 8 levels to keep it short
+        let depth = 0;
+        while (el && depth < 8) {
+            const tag = el.tagName.toLowerCase();
+            parts.unshift(tag);
+            // Stop at a component host element (custom element with a hyphen)
+            if (tag.includes('-')) break;
+            el = el.parentElement;
+            depth++;
+        }
+        return parts.join(' > ');
+    }
+
+    /** Pre-calculate the panel position before it renders */
+    private calculatePanelPosition(x: number, y: number) {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const gap = 12;
+        // Estimate panel dimensions (will be refined, but good enough for positioning)
+        const estimatedWidth = 340;
+        const estimatedHeight = 80;
+
+        // Try to place above the click point; fall back to below
+        let top = y - estimatedHeight - gap;
+        if (top < gap) top = y + gap;
+        // Horizontal: center on click, clamp to viewport
+        let left = x - estimatedWidth / 2;
+        left = Math.max(gap, Math.min(left, vw - estimatedWidth - gap));
+        top = Math.max(gap, Math.min(top, vh - estimatedHeight - gap));
+
+        this.panelTop = top;
+        this.panelLeft = left;
+    }
+
+    /** Check if an element belongs to the devtool's own UI (shell, overlay, panel) */
+    private isDevToolElement(el: HTMLElement): boolean {
+        return !!el.closest('ng-inapp-dev-tool-shell');
+    }
+
+    private warnOpenEditorFailed(editor: string, reason: string): void {
+        console.warn(
+            `[ng-inapp-dev-tool] Open-in-editor failed for editor "${editor}" — ${reason}. ` +
+            `The "${editor}" handler relies on a /__open-in-editor endpoint on your dev server, which Angular's default builder does not provide. ` +
+            `Use editor: 'vscode' | 'code' | 'cursor' | 'webstorm' | 'idea' (URL schemes), or install a launch-editor middleware.`
+        );
     }
 }

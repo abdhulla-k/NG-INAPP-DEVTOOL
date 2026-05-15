@@ -1,1 +1,56 @@
-/* You can add global styles to this file, and also import other style files */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+    --bright-blue: oklch(51.01% 0.274 263.83);
+    --electric-violet: oklch(53.18% 0.28 296.97);
+    --french-violet: oklch(47.66% 0.246 305.88);
+    --vivid-pink: oklch(69.02% 0.277 332.77);
+    --hot-red: oklch(61.42% 0.238 15.34);
+    --orange-red: oklch(63.32% 0.24 31.68);
+
+    --gray-950: oklch(14% 0.006 300);
+    --gray-900: oklch(19.37% 0.006 300.98);
+    --gray-800: oklch(25% 0.006 300);
+    --gray-700: oklch(36.98% 0.014 302.71);
+    --gray-500: oklch(55% 0.014 302);
+    --gray-400: oklch(70.9% 0.015 304.04);
+    --gray-300: oklch(82% 0.012 302);
+
+    --pink-glow: 255, 65, 248;
+
+    --gradient-pink: linear-gradient(135deg, var(--orange-red) 0%, var(--vivid-pink) 50%, var(--electric-violet) 100%);
+
+    --container-max: 1200px;
+    --section-pad-y: 96px;
+    --section-pad-y-mobile: 64px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--gray-950);
+    color: var(--gray-300);
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+body {
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+::selection {
+    background: rgba(var(--pink-glow), 0.35);
+    color: white;
+}
+
+a { color: inherit; text-decoration: none; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--gray-950); }
+::-webkit-scrollbar-thumb { background: var(--gray-700); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gray-500); }

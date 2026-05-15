@@ -3,7 +3,8 @@ import { InjectionToken, Type } from '@angular/core';
 // Interface / Rules of our plugin
 export interface Plugin {
     name: string;
-
+    icon: string; // SVG string for the sidebar icon
+    order?: number; // Optional order to sort plugins in the sidebar
     component: Type<any>;
 }
 

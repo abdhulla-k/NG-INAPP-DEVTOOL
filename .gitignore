@@ -51,3 +51,4 @@ dist
 projects/test-app/src/app/local.config.ts
 projects/test-app/src/environments/
 .env
+CLAUDE.md
