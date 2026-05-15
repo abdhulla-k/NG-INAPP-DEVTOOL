@@ -201,7 +201,7 @@ const EXT_TYPE: Array<[RegExp, AssetType]> = [
             width: 100%;
             font-family: 'Inter', sans-serif;
             color: #e2e8f0;
-            background: var(--gray-900);
+            background: var(--ngidt-gray-900);
             overflow: hidden;
         }
 
@@ -215,26 +215,26 @@ const EXT_TYPE: Array<[RegExp, AssetType]> = [
         .list-pane {
             width: 45%;
             min-width: 320px;
-            border-right: 1px solid var(--gray-700);
+            border-right: 1px solid var(--ngidt-gray-700);
             display: flex;
             flex-direction: column;
-            background: var(--gray-900);
+            background: var(--ngidt-gray-900);
         }
         .detail-pane {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: var(--gray-900);
+            background: var(--ngidt-gray-900);
             overflow: hidden;
         }
 
         .pane-header {
             padding: 12px 16px;
-            border-bottom: 1px solid var(--gray-700);
+            border-bottom: 1px solid var(--ngidt-gray-700);
             display: flex;
             align-items: center;
             gap: 10px;
-            background: var(--gray-800, #1f1f23);
+            background: var(--ngidt-gray-800, #1f1f23);
         }
         .pane-header h3 {
             margin: 0;
@@ -261,7 +261,7 @@ const EXT_TYPE: Array<[RegExp, AssetType]> = [
         /* Buttons */
         .refresh-btn, .copy-btn, .ghost-btn {
             background: transparent;
-            border: 1px solid var(--gray-700);
+            border: 1px solid var(--ngidt-gray-700);
             color: #cbd5e1;
             cursor: pointer;
             padding: 4px 10px;
@@ -275,12 +275,12 @@ const EXT_TYPE: Array<[RegExp, AssetType]> = [
         .refresh-btn { padding: 4px; border: none; }
         .refresh-btn:hover, .copy-btn:hover, .ghost-btn:hover {
             color: white;
-            background: var(--gray-700);
+            background: var(--ngidt-gray-700);
         }
         .ghost-btn:disabled { opacity: 0.5; cursor: default; }
         .icon { width: 14px; height: 14px; }
         .copy-btn[data-state="Copied!"] {
-            color: var(--vivid-pink);
+            color: var(--ngidt-vivid-pink);
             border-color: rgba(255, 65, 248, 0.4);
         }
 
@@ -290,7 +290,7 @@ const EXT_TYPE: Array<[RegExp, AssetType]> = [
             align-items: center;
             gap: 8px;
             padding: 8px 12px;
-            border-bottom: 1px solid var(--gray-700);
+            border-bottom: 1px solid var(--ngidt-gray-700);
             color: #94a3b8;
         }
         .search-bar input {
@@ -309,7 +309,7 @@ const EXT_TYPE: Array<[RegExp, AssetType]> = [
             flex-wrap: wrap;
             gap: 6px;
             padding: 10px 12px;
-            border-bottom: 1px solid var(--gray-700);
+            border-bottom: 1px solid var(--ngidt-gray-700);
         }
         .chip {
             background: rgba(255,255,255,0.04);
@@ -328,7 +328,7 @@ const EXT_TYPE: Array<[RegExp, AssetType]> = [
         .chip.active {
             background: rgba(255, 65, 248, 0.12);
             border-color: rgba(255, 65, 248, 0.4);
-            color: var(--vivid-pink);
+            color: var(--ngidt-vivid-pink);
         }
         .chip .count {
             font-size: 10px;
@@ -338,7 +338,7 @@ const EXT_TYPE: Array<[RegExp, AssetType]> = [
         }
         .chip.active .count {
             background: rgba(255, 65, 248, 0.2);
-            color: var(--vivid-pink);
+            color: var(--ngidt-vivid-pink);
         }
 
         /* List */
@@ -358,7 +358,7 @@ const EXT_TYPE: Array<[RegExp, AssetType]> = [
         .asset-row:hover { background: rgba(255,255,255,0.04); }
         .asset-row.selected {
             background: rgba(255, 65, 248, 0.08);
-            border-left-color: var(--vivid-pink);
+            border-left-color: var(--ngidt-vivid-pink);
         }
         .thumb {
             width: 32px;
@@ -427,7 +427,7 @@ const EXT_TYPE: Array<[RegExp, AssetType]> = [
         }
         .preview {
             background: rgba(0,0,0,0.3);
-            border: 1px solid var(--gray-700);
+            border: 1px solid var(--ngidt-gray-700);
             border-radius: 6px;
             padding: 12px;
             margin-bottom: 16px;
@@ -454,11 +454,11 @@ const EXT_TYPE: Array<[RegExp, AssetType]> = [
         }
         .url-cell {
             word-break: break-all;
-            color: var(--vivid-pink);
+            color: var(--ngidt-vivid-pink);
         }
 
         .usage-section {
-            border-top: 1px solid var(--gray-700);
+            border-top: 1px solid var(--ngidt-gray-700);
             padding-top: 14px;
         }
         .usage-header {

@@ -110,16 +110,19 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
     styles: [
         `
         :host {
-            --bright-blue: oklch(51.01% 0.274 263.83);
-            --electric-violet: oklch(53.18% 0.28 296.97);
-            --french-violet: oklch(47.66% 0.246 305.88);
-            --vivid-pink: oklch(69.02% 0.277 332.77);
-            --hot-red: oklch(61.42% 0.238 15.34);
-            --orange-red: oklch(63.32% 0.24 31.68);
+            --ngidt-bright-blue: oklch(51.01% 0.274 263.83);
+            --ngidt-electric-violet: oklch(53.18% 0.28 296.97);
+            --ngidt-french-violet: oklch(47.66% 0.246 305.88);
+            --ngidt-vivid-pink: oklch(69.02% 0.277 332.77);
+            --ngidt-hot-red: oklch(61.42% 0.238 15.34);
+            --ngidt-orange-red: oklch(63.32% 0.24 31.68);
 
-            --gray-900: oklch(19.37% 0.006 300.98);
-            --gray-700: oklch(36.98% 0.014 302.71);
-            --gray-400: oklch(70.9% 0.015 304.04);
+            --ngidt-gray-900: oklch(19.37% 0.006 300.98);
+            --ngidt-gray-800: oklch(25% 0.006 300);
+            --ngidt-gray-700: oklch(36.98% 0.014 302.71);
+            --ngidt-gray-500: oklch(55% 0.014 302);
+            --ngidt-gray-400: oklch(70.9% 0.015 304.04);
+            --ngidt-gray-300: oklch(82% 0.012 302);
         }
 
         .button-container {
@@ -146,7 +149,7 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
         }
 
         .inspector-button:hover {
-            color: var(--vivid-pink);
+            color: var(--ngidt-vivid-pink);
             cursor: pointer;
         }
         
@@ -170,7 +173,7 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
             background: #18181b;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid var(--gray-700);
+            border-right: 1px solid var(--ngidt-gray-700);
             padding-top: 15px;
             align-items: center;
             overflow-y: auto;
@@ -183,7 +186,7 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
         }
 
         .sidebar-logo {
-            color: var(--vivid-pink);
+            color: var(--ngidt-vivid-pink);
             margin-bottom: 15px;
             display: flex;
             align-items: center;
@@ -193,14 +196,14 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
         .sidebar-divider {
             width: 35px;
             height: 1px;
-            background: var(--gray-700);
+            background: var(--ngidt-gray-700);
             margin-bottom: 15px;
         }
         
         .plugin-tab {
             background: transparent;
             border: none;
-            color: var(--gray-400);
+            color: var(--ngidt-gray-400);
             cursor: pointer;
             padding: 10px;
             margin-bottom: 8px;
@@ -215,11 +218,11 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
 
         .plugin-tab:hover {
             color: white;
-            background: var(--gray-800);
+            background: var(--ngidt-gray-800);
         }
 
         .plugin-tab.active {
-            color: var(--vivid-pink);
+            color: var(--ngidt-vivid-pink);
             background: rgba(255, 65, 248, 0.1);
             box-shadow: inset 0 0 0 1px rgba(255, 65, 248, 0.2);
         }
@@ -233,7 +236,7 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
 
         .content-area {
             flex: 1;
-            background: var(--gray-900);
+            background: var(--ngidt-gray-900);
             overflow: auto;
             position: relative;
         }
@@ -246,11 +249,11 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
             background: transparent;
         }
         .content-area::-webkit-scrollbar-thumb {
-            background: var(--gray-700);
+            background: var(--ngidt-gray-700);
             border-radius: 4px;
         }
         .content-area::-webkit-scrollbar-thumb:hover {
-            background: var(--gray-400);
+            background: var(--ngidt-gray-400);
         }
 
         .empty-state {
@@ -258,7 +261,7 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
             align-items: center;
             justify-content: center;
             height: 100%;
-            color: var(--gray-400);
+            color: var(--ngidt-gray-400);
             font-family: 'Inter', sans-serif;
         }
         .draggable-wrapper {
@@ -285,8 +288,8 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
         }
         .shell-container {
             position: fixed;
-            background: var(--gray-900);
-            border: 1px solid var(--gray-700);
+            background: var(--ngidt-gray-900);
+            border: 1px solid var(--ngidt-gray-700);
             border-radius: 8px;
             box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
             z-index: 9999;

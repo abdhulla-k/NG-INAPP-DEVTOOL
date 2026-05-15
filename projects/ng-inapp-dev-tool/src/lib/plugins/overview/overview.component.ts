@@ -123,13 +123,13 @@ import { Component } from '@angular/core';
     .title-dt {
       font-size: 32px;
       font-weight: 700;
-      color: var(--vivid-pink);
+      color: var(--ngidt-vivid-pink);
     }
 
     .version {
       margin-left: 12px;
       font-size: 14px;
-      color: var(--gray-400);
+      color: var(--ngidt-gray-400);
       align-self: flex-end;
       margin-bottom: 6px;
     }
@@ -143,8 +143,8 @@ import { Component } from '@angular/core';
     }
 
     .stat-card {
-      background: var(--gray-900);
-      border: 1px solid var(--gray-700);
+      background: var(--ngidt-gray-900);
+      border: 1px solid var(--ngidt-gray-700);
       border-radius: 8px;
       padding: 24px;
       display: flex;
@@ -158,20 +158,20 @@ import { Component } from '@angular/core';
     }
 
     .stat-card:hover {
-      border-color: var(--vivid-pink);
+      border-color: var(--ngidt-vivid-pink);
       transform: translateY(-2px);
     }
 
     .stat-card:hover .icon {
-      color: var(--vivid-pink);
+      color: var(--ngidt-vivid-pink);
     }
 
     .stat-card:hover .value {
-      color: var(--vivid-pink);
+      color: var(--ngidt-vivid-pink);
     }
 
     .icon {
-      color: var(--gray-400);
+      color: var(--ngidt-gray-400);
       margin-bottom: 12px;
       transition: color 0.2s ease;
     }
@@ -179,7 +179,7 @@ import { Component } from '@angular/core';
     .value {
       font-size: 14px;
       font-weight: 500;
-      color: var(--gray-400);
+      color: var(--ngidt-gray-400);
       transition: color 0.2s ease;
     }
 
@@ -190,7 +190,7 @@ import { Component } from '@angular/core';
     }
 
     .footer-links a {
-      color: var(--gray-400);
+      color: var(--ngidt-gray-400);
       text-decoration: none;
       font-size: 14px;
       transition: color 0.2s ease;

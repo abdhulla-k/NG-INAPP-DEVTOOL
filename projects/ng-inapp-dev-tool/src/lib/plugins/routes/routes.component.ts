@@ -183,7 +183,7 @@ interface MatchedRoute {
         }
 
         .current-route-input-group:focus-within {
-            border-color: var(--vivid-pink, oklch(69.02% 0.277 332.77));
+            border-color: var(--ngidt-vivid-pink, oklch(69.02% 0.277 332.77));
         }
 
         .route-icon {
@@ -274,7 +274,7 @@ interface MatchedRoute {
 
         .badge.active {
             background: rgba(255, 65, 248, 0.15);
-            color: var(--vivid-pink, #FF41F8);
+            color: var(--ngidt-vivid-pink, #FF41F8);
             padding: 2px 6px;
             border-radius: 4px;
             font-size: 10px;
