@@ -1,0 +1,68 @@
+name: Deploy test-app to GitHub Pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Stub gitignored local.config.ts
+        run: |
+          mkdir -p projects/test-app/src/app
+          printf "export const projectRoot = '%s';\n" "${GITHUB_WORKSPACE}" \
+            > projects/test-app/src/app/local.config.ts
+
+      - name: Build test-app
+        run: |
+          npx ng build test-app \
+            --configuration production \
+            --base-href "/${{ github.event.repository.name }}/"
+
+      - name: Prepare static output for Pages
+        run: |
+          OUT="dist/test-app/browser"
+          if [ ! -d "$OUT" ]; then
+            echo "Expected $OUT to exist after build" >&2
+            ls -R dist || true
+            exit 1
+          fi
+          cp "$OUT/index.html" "$OUT/404.html"
+          touch "$OUT/.nojekyll"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/test-app/browser
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
