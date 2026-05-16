@@ -1,6 +1,6 @@
 {
   "name": "ng-inapp-dev-tool",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "In-app developer tools for Angular — inspect components, routes, signals, and assets directly inside your running app. Inspired by Nuxt DevTools.",
   "keywords": [
     "angular",
