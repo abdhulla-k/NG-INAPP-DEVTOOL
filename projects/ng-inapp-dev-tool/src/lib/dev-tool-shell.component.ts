@@ -133,6 +133,17 @@ import { InspectorOverlayComponent } from './inspector-overlay.component';
             border-radius: 20px;
             gap: 4px;
             flex-direction: row;
+            box-shadow:
+                0 0 0 1px rgba(255, 65, 248, 0.18),
+                0 0 14px 2px rgba(255, 65, 248, 0.35),
+                0 0 38px 6px rgba(255, 65, 248, 0.22);
+            transition: box-shadow 0.25s ease;
+        }
+        .button-container:hover {
+            box-shadow:
+                0 0 0 1px rgba(255, 65, 248, 0.3),
+                0 0 18px 3px rgba(255, 65, 248, 0.55),
+                0 0 56px 10px rgba(255, 65, 248, 0.32);
         }
         .button-container.vertical {
             flex-direction: column;
