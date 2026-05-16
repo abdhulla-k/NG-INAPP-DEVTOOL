@@ -111,8 +111,21 @@ interface Feature {
                         <li>Browser-only mount via <span class="mono">PLATFORM_ID</span></li>
                         <li>Editor jump-to-source (VSCode, Cursor, WebStorm, IDEA)</li>
                     </ul>
+                    <a class="btn btn-ghost npm-btn" href="https://www.npmjs.com/package/ng-inapp-dev-tool" target="_blank" rel="noopener">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M0 7.334v8h6.666v1.332H12v-1.332h12v-8H0zm6.666 6.664H5.334v-4H3.999v4H1.335V8.667h5.331v5.331zm4 0v1.336H8.001V8.667h5.334v5.332h-2.669v-.001zm12.001 0h-1.33v-4h-1.336v4h-1.335v-4h-1.33v4h-2.671V8.667h8.002v5.331zM10.665 10H12v2.667h-1.335V10z"/></svg>
+                        View on npm
+                    </a>
                 </div>
-                <pre class="code"><code>{{ installSnippet }}</code></pre>
+                <div class="code-stack">
+                    <div class="code-step">
+                        <div class="step-label"><span class="step-num">1</span> Install</div>
+                        <pre class="code"><code>{{ installCommand }}</code></pre>
+                    </div>
+                    <div class="code-step">
+                        <div class="step-label"><span class="step-num">2</span> Configure <span class="mono">app.config.ts</span></div>
+                        <pre class="code"><code>{{ installSnippet }}</code></pre>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -148,6 +161,7 @@ interface Feature {
                 </div>
                 <div class="foot-col">
                     <h4>Project</h4>
+                    <a href="https://www.npmjs.com/package/ng-inapp-dev-tool" target="_blank" rel="noopener">npm</a>
                     <a href="https://github.com/abdhulla-k/NG-INAPP-DEVTOOL" target="_blank" rel="noopener">GitHub</a>
                     <a href="https://github.com/abdhulla-k/NG-INAPP-DEVTOOL/blob/main/README.md" target="_blank" rel="noopener">README</a>
                     <a href="https://github.com/abdhulla-k/NG-INAPP-DEVTOOL/blob/main/Core.md" target="_blank" rel="noopener">Plugin guide</a>
@@ -475,6 +489,46 @@ interface Feature {
         }
         .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.92em; color: var(--vivid-pink); }
 
+        .npm-btn {
+            margin-top: 24px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            align-self: flex-start;
+        }
+        .npm-btn svg { color: #cb3837; }
+
+        .code-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .code-step { display: flex; flex-direction: column; gap: 10px; }
+        .step-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--gray-400);
+            font-weight: 600;
+        }
+        .step-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(var(--pink-glow), 0.15);
+            border: 1px solid var(--vivid-pink);
+            color: var(--vivid-pink);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
         .code {
             background: var(--gray-900);
             border: 1px solid var(--gray-800);
@@ -556,6 +610,7 @@ interface Feature {
             .install-copy h2, .plugins-copy h2 { text-align: center; }
             .install-copy, .plugins-copy { text-align: center; display: flex; flex-direction: column; align-items: center; }
             .install-copy p, .plugins-copy p { margin-left: auto; margin-right: auto; }
+            .npm-btn { align-self: center; }
             .checklist { display: inline-flex; }
             .footer-grid { grid-template-columns: 1fr 1fr; }
         }
@@ -652,15 +707,21 @@ export class LandingComponent {
         },
     ];
 
-    installSnippet = `import { ApplicationConfig } from '@angular/core';
+    installCommand = `npm install ng-inapp-dev-tool --save-dev`;
+
+    installSnippet = `// app.config.ts
+import { ApplicationConfig } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { provideInAppDevTools } from 'ng-inapp-dev-tool';
+
+import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    // ...your other providers
+    provideRouter(routes),
     provideInAppDevTools({
       editor: 'vscode',
-      projectRoot: '/abs/path/to/repo',
+      projectRoot: '/absolute/path/to/your/repo',
     }),
   ],
 };`;
