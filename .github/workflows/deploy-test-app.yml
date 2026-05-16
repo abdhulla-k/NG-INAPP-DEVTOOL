@@ -35,9 +35,13 @@ jobs:
             > projects/test-app/src/app/local.config.ts
 
       - name: Build test-app
+        # Use the development configuration so the in-app dev tool actually
+        # renders on the deployed page (it's gated on Angular's isDevMode(),
+        # and the Components/Inspector plugins need Angular's debug APIs
+        # which production builds strip).
         run: |
           npx ng build test-app \
-            --configuration production \
+            --configuration development \
             --base-href "/${{ github.event.repository.name }}/"
 
       - name: Prepare static output for Pages
