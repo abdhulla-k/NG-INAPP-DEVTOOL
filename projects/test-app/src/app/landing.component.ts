@@ -444,6 +444,7 @@ interface Feature {
             gap: 56px;
             align-items: center;
         }
+        .install-grid > * { min-width: 0; }
         .install-copy h2 { text-align: left; }
         .install-copy p {
             color: var(--gray-400);
@@ -558,6 +559,7 @@ interface Feature {
             gap: 56px;
             align-items: center;
         }
+        .plugins-grid > * { min-width: 0; }
         .plugins-copy h2 { text-align: left; }
         .plugins-copy p {
             color: var(--gray-400);
