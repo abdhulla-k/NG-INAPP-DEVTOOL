@@ -102,7 +102,11 @@ export function provideInAppDevTools(
                         const shellComponentRef = createComponent(DevToolShellComponent, {
                             environmentInjector,
                         });
-                        document.body.appendChild(shellComponentRef.location.nativeElement);
+                        // Append to <html> rather than <body>. If the host app's <body>
+                        // has filter/transform/perspective/contain/will-change, it becomes
+                        // the containing block for position: fixed descendants — which
+                        // breaks the toggle, inspector overlay, and shell panel positioning.
+                        document.documentElement.appendChild(shellComponentRef.location.nativeElement);
                     } else if (attempts < 10) {
                         // Try again in 100ms
                         setTimeout(() => checkAppRoot(attempts + 1), 100);
