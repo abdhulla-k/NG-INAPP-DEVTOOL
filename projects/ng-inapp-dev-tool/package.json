@@ -1,6 +1,6 @@
 {
   "name": "ng-inapp-dev-tool",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "In-app developer tools for Angular — inspect components, routes, signals, and assets directly inside your running app. Inspired by Nuxt DevTools.",
   "keywords": [
     "angular",
@@ -25,10 +25,10 @@
     "url": "https://github.com/abdhulla-k/NG-INAPP-DEVTOOL/issues"
   },
   "peerDependencies": {
-    "@angular/common": "^19.0.0 || ^20.0.0",
-    "@angular/core": "^19.0.0 || ^20.0.0",
-    "@angular/platform-browser": "^19.0.0 || ^20.0.0",
-    "@angular/router": "^19.0.0 || ^20.0.0"
+    "@angular/common": "^19.0.0 || ^20.0.0 || ^21.0.0",
+    "@angular/core": "^19.0.0 || ^20.0.0 || ^21.0.0",
+    "@angular/platform-browser": "^19.0.0 || ^20.0.0 || ^21.0.0",
+    "@angular/router": "^19.0.0 || ^20.0.0 || ^21.0.0"
   },
   "dependencies": {
     "tslib": "^2.3.0"
