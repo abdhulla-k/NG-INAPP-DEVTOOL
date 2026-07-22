@@ -21,6 +21,7 @@ import { ComponentsComponent } from './plugins/components/components.component';
 import { RoutesComponent } from './plugins/routes/routes.component';
 import { AssetsComponent } from './plugins/assets/assets.component';
 import { SeoComponent } from './plugins/seo/seo.component';
+import { ProfilerComponent } from './plugins/profiler/profiler.component';
 
 // Setup build in plugins here
 const BUILT_IN_PLUGINS: Plugin[] = [
@@ -53,6 +54,12 @@ const BUILT_IN_PLUGINS: Plugin[] = [
         icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>',
         order: 4,
         component: SeoComponent
+    },
+    {
+        name: 'Profiler',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+        order: 5,
+        component: ProfilerComponent
     }
 ];
 
