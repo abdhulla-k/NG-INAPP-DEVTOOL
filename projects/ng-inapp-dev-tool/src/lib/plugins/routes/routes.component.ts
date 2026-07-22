@@ -18,6 +18,18 @@ interface MatchedRoute {
     routeRef: Route;
 }
 
+interface RouteTreeNode {
+    segment: string;      // this route's own path segment
+    fullPath: string;     // accumulated path from the root
+    componentName: string;
+    guards: string[];
+    isLazy: boolean;
+    redirectTo?: string;
+    routeRef: Route;
+    children: RouteTreeNode[];
+    expanded: boolean;
+}
+
 @Component({
     selector: 'ng-inapp-dev-tool-routes',
     standalone: true,
@@ -80,6 +92,49 @@ interface MatchedRoute {
                     </tbody>
                 </table>
             </div>
+
+            <div class="spacer"></div>
+
+            <header class="section-header">
+                <svg class="header-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 2 5-6"/></svg>
+                <h2>Route Tree</h2>
+            </header>
+
+            <div class="tree-box">
+                @for (node of routeTree; track $index) {
+                    <ng-container *ngTemplateOutlet="routeNodeTpl; context: { $implicit: node, depth: 0 }"></ng-container>
+                }
+                @if (routeTree.length === 0) {
+                    <div class="text-muted text-center tree-empty">No routes registered.</div>
+                }
+            </div>
+
+            <!-- Recursive route tree node -->
+            <ng-template #routeNodeTpl let-node let-depth="depth">
+                <div class="tree-row"
+                     [class.active]="matchedRouteRefs.has(node.routeRef)"
+                     [class.clickable]="isNavigable(node)"
+                     [style.padding-left.px]="depth * 18 + 8"
+                     (click)="onTreeNodeClick(node)">
+                    <span class="tree-caret"
+                          [class.invisible]="!node.children.length"
+                          [class.expanded]="node.expanded"
+                          (click)="toggleTreeNode($event, node)">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </span>
+                    <span class="tree-path">/{{ node.segment }}</span>
+                    <span class="tree-component">{{ node.componentName }}</span>
+                    @if (matchedRouteRefs.has(node.routeRef)) { <span class="badge active">active</span> }
+                    @if (node.isLazy) { <span class="badge lazy">lazy</span> }
+                    @if (node.redirectTo !== undefined) { <span class="badge redirect">→ {{ node.redirectTo }}</span> }
+                    @for (g of node.guards; track g) { <span class="guard-badge">{{ g }}</span> }
+                </div>
+                @if (node.expanded && node.children.length > 0) {
+                    @for (child of node.children; track $index) {
+                        <ng-container *ngTemplateOutlet="routeNodeTpl; context: { $implicit: child, depth: depth + 1 }"></ng-container>
+                    }
+                }
+            </ng-template>
 
             <div class="spacer"></div>
 
@@ -326,6 +381,66 @@ interface MatchedRoute {
             font-family: monospace;
         }
 
+        /* Route tree */
+        .tree-box {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 8px 0;
+            font-family: monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+        .tree-empty { padding: 12px; }
+        .tree-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-top: 4px;
+            padding-bottom: 4px;
+            padding-right: 12px;
+            white-space: nowrap;
+        }
+        .tree-row.clickable { cursor: pointer; }
+        .tree-row.clickable:hover { background: rgba(255, 255, 255, 0.05); }
+        .tree-row.active { background: rgba(255, 65, 248, 0.07); }
+        .tree-caret {
+            width: 14px;
+            height: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            transition: transform 0.15s ease;
+            flex-shrink: 0;
+            border-radius: 3px;
+        }
+        .tree-caret:hover { color: white; background: rgba(255,255,255,0.1); }
+        .tree-caret.expanded { transform: rotate(90deg); }
+        .tree-caret.invisible { visibility: hidden; }
+        .tree-caret svg { width: 11px; height: 11px; }
+        .tree-path { color: #e2e8f0; }
+        .tree-row.active .tree-path { color: var(--ngidt-vivid-pink, #FF41F8); }
+        .tree-component { color: #64748b; }
+        .badge.lazy {
+            background: rgba(96, 165, 250, 0.15);
+            color: #60a5fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-family: 'Inter', sans-serif;
+        }
+        .badge.redirect {
+            background: rgba(251, 191, 36, 0.12);
+            color: #fbbf24;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-family: 'Inter', sans-serif;
+        }
+
         .text-muted {
             color: #64748b;
         }
@@ -346,14 +461,16 @@ export class RoutesComponent implements OnInit, OnDestroy {
 
     currentUrl = '';
     allRoutes: ParsedRoute[] = [];
+    routeTree: RouteTreeNode[] = [];
     matchedRoutes: MatchedRoute[] = [];
     matchedRouteRefs = new Set<Route>();
 
+    // Collapsed nodes remembered by full path, so re-parsing after a navigation
+    // (which can reveal newly loaded lazy routes) doesn't reset the tree UI.
+    private collapsedPaths = new Set<string>();
+
     ngOnInit() {
         if (!this.router) return;
-
-        // Parse all routes
-        this.allRoutes = this.parseRoutes(this.router.config);
 
         // Initial state
         this.updateCurrentState();
@@ -372,9 +489,14 @@ export class RoutesComponent implements OnInit, OnDestroy {
 
     private updateCurrentState() {
         if (!this.router) return;
-        
+
         this.currentUrl = this.router.url;
-        
+
+        // Re-parse on every navigation: lazy children (_loadedRoutes) only exist
+        // after the router has loaded them.
+        this.allRoutes = this.parseRoutes(this.router.config);
+        this.routeTree = this.buildTree(this.router.config, '');
+
         // Build matched routes + collect their route configs so the All Routes
         // table can highlight by reference (works for parameterized routes too).
         this.matchedRoutes = [];
@@ -403,6 +525,51 @@ export class RoutesComponent implements OnInit, OnDestroy {
 
     hasParams(path: string): boolean {
         return path.includes(':') || path.includes('**');
+    }
+
+    private buildTree(routes: Route[], parentPath: string): RouteTreeNode[] {
+        const nodes: RouteTreeNode[] = [];
+        for (const route of routes) {
+            const segment = route.path ?? '';
+            const fullPath = parentPath ? (segment ? `${parentPath}/${segment}` : parentPath) : segment;
+
+            const children = [
+                ...this.buildTree(route.children ?? [], fullPath),
+                ...this.buildTree((route as any)._loadedRoutes ?? [], fullPath),
+            ];
+
+            nodes.push({
+                segment,
+                fullPath,
+                componentName: this.getComponentName(route),
+                guards: this.getGuards(route),
+                isLazy: !!route.loadChildren || !!route.loadComponent,
+                redirectTo: typeof route.redirectTo === 'string' ? route.redirectTo : undefined,
+                routeRef: route,
+                children,
+                expanded: !this.collapsedPaths.has(fullPath),
+            });
+        }
+        return nodes;
+    }
+
+    toggleTreeNode(event: Event, node: RouteTreeNode) {
+        event.stopPropagation();
+        node.expanded = !node.expanded;
+        if (node.expanded) {
+            this.collapsedPaths.delete(node.fullPath);
+        } else {
+            this.collapsedPaths.add(node.fullPath);
+        }
+    }
+
+    isNavigable(node: RouteTreeNode): boolean {
+        return node.redirectTo === undefined && !this.hasParams(node.fullPath);
+    }
+
+    onTreeNodeClick(node: RouteTreeNode) {
+        if (!this.isNavigable(node)) return;
+        this.navigateByRoute(node.fullPath);
     }
 
     private parseRoutes(routes: Route[], parentPath = ''): ParsedRoute[] {
