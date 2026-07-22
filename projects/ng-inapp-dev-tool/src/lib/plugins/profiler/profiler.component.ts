@@ -25,7 +25,25 @@ const OWN_COMPONENTS = new Set([
     'AssetsComponent',
     'SeoComponent',
     'ProfilerComponent',
+    'StateComponent',
 ]);
+
+// Angular-internal embedded-view context classes (@for repeaters, *ngIf, etc.).
+// Their template updates belong to the declaring component, so a standalone row
+// for them is noise.
+const INTERNAL_CONTEXTS = new Set([
+    'RepeaterContext',
+    'NgIfContext',
+    'NgForOfContext',
+    'NgTemplateOutletContext',
+    'Object',
+]);
+
+// Dev-server bundles rename classes to `_LandingComponent`; strip the prefix so
+// exclusion matching and display both see the real class name.
+function normalizeName(raw: string | undefined): string | undefined {
+    return raw ? raw.replace(/^_+/, '') : raw;
+}
 
 @Component({
     selector: 'ng-devtool-profiler',
@@ -360,8 +378,8 @@ export class ProfilerComponent implements OnInit, OnDestroy {
                 if (start === undefined) break;
                 this.startStamps.delete(instance);
 
-                const name = instance.constructor?.name;
-                if (!name || OWN_COMPONENTS.has(name)) break;
+                const name = normalizeName(instance.constructor?.name);
+                if (!name || OWN_COMPONENTS.has(name) || INTERNAL_CONTEXTS.has(name)) break;
 
                 const duration = performance.now() - start;
                 let stat = this.stats.get(name);

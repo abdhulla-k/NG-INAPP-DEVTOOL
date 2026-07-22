@@ -532,7 +532,8 @@ export class ComponentsComponent implements OnInit, OnDestroy {
             const id = 'node_' + (this.idCounter++);
             currentComponentNode = {
                 id,
-                name: compInstance.constructor.name,
+                // Dev bundles rename classes to `_LandingComponent` — strip the prefix
+                name: (compInstance.constructor.name || 'Unknown').replace(/^_+/, ''),
                 element,
                 instance: compInstance,
                 children: [],

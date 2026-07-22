@@ -128,6 +128,11 @@ export function provideInAppDevTools(
                         // the containing block for position: fixed descendants — which
                         // breaks the toggle, inspector overlay, and shell panel positioning.
                         document.documentElement.appendChild(shellComponentRef.location.nativeElement);
+                        // The shell view is deliberately detached from ApplicationRef
+                        // (it manages its own CD), so run its initial change detection
+                        // manually — otherwise ngOnInit never fires and restored UI
+                        // state (open panel, position) wouldn't render until a click.
+                        shellComponentRef.changeDetectorRef.detectChanges();
                     } else if (attempts < 10) {
                         // Try again in 100ms
                         setTimeout(() => checkAppRoot(attempts + 1), 100);

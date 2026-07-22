@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Input, input, Output, output } from '@angular/core';
 
 @Component({
     selector: 'app-devtool-mock',
@@ -243,4 +243,11 @@ import { Component } from '@angular/core';
         }
     `],
 })
-export class DevtoolMockComponent {}
+// Inputs/outputs exist purely so the dev tool's Components inspector has real
+// metadata to display on this page (signal input, decorator input, both output styles).
+export class DevtoolMockComponent {
+    caption = input('In-app dev tools');
+    @Input() accent = '#ff41f8';
+    dismissed = output<void>();
+    @Output() selected = new EventEmitter<string>();
+}

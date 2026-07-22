@@ -126,7 +126,7 @@ interface RouteTreeNode {
                     <span class="tree-component">{{ node.componentName }}</span>
                     @if (matchedRouteRefs.has(node.routeRef)) { <span class="badge active">active</span> }
                     @if (node.isLazy) { <span class="badge lazy">lazy</span> }
-                    @if (node.redirectTo !== undefined) { <span class="badge redirect">→ {{ node.redirectTo }}</span> }
+                    @if (node.redirectTo !== undefined) { <span class="badge redirect">→ {{ node.redirectTo || '/' }}</span> }
                     @for (g of node.guards; track g) { <span class="guard-badge">{{ g }}</span> }
                 </div>
                 @if (node.expanded && node.children.length > 0) {
@@ -538,10 +538,13 @@ export class RoutesComponent implements OnInit, OnDestroy {
                 ...this.buildTree((route as any)._loadedRoutes ?? [], fullPath),
             ];
 
+            const redirectOnly = route.redirectTo !== undefined
+                && !route.component && !route.loadComponent && !route.loadChildren;
             nodes.push({
                 segment,
                 fullPath,
-                componentName: this.getComponentName(route),
+                // Redirect-only routes have no component — the redirect badge says it all
+                componentName: redirectOnly ? '' : this.getComponentName(route),
                 guards: this.getGuards(route),
                 isLazy: !!route.loadChildren || !!route.loadComponent,
                 redirectTo: typeof route.redirectTo === 'string' ? route.redirectTo : undefined,
@@ -609,7 +612,8 @@ export class RoutesComponent implements OnInit, OnDestroy {
 
     private getComponentName(route: Route): string {
         if (route.component) {
-            return route.component.name || 'AnonymousComponent';
+            // Strip the `_` prefix dev bundles add to class names
+            return (route.component.name || 'AnonymousComponent').replace(/^_+/, '');
         }
         if (route.loadComponent) {
             return 'LazyComponent';
