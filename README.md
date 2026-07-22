@@ -8,35 +8,57 @@ Angular is strong, but sometimes development can feel slow. Our purpose is simpl
 
 We think key debugging and analysis tools should be available exactly where you need them—inside your app.
 
-This devtool will give you instant information about different parts of your Angular app:
+### Built-in plugins
 
-- **Overview Landing Page:** A beautiful, built-in dashboard that displays your Angular version (v19.2), component count, page count, and active plugins at a glance.
+- **Overview:** A built-in dashboard that displays your Angular version, component count, page count, and active plugins at a glance.
 
-- **Source Code Navigation (Open in Editor):** Click any component in your running app to instantly open its source file in your code editor. This will help you find and edit code much faster.
+- **Components:** A live tree of every Angular component on the page. Inspect public state with signals unwrapped, see **Inputs and Outputs** in their own badged sections (both `@Input()`/`@Output()` and `input()`/`output()` styles), and **edit state inline** — strings and numbers are click-to-edit, booleans toggle with a checkbox, and writable signals go through `.set()`. Changes render in your app immediately.
 
-- **Component Explorer:** See a visual map of your components. You can inspect their settings (inputs/outputs) and watch how Angular updates them in real-time.
+- **Source Code Navigation (Open in Editor):** Click any component in your running app to instantly open its source file in your code editor (VS Code, Cursor, WebStorm, IDEA, or a custom dev-server handler).
 
-- **State & Store Management:** A dedicated window to check and follow how your state management works (like signals, RxJS, NGRX, or NGXS). View and trace state changes easily.
+- **Routes:** Every registered route with guards and lazy markers, the currently matched chain, one-click navigation, and an **interactive route tree** that highlights the active branch live and picks up lazily loaded child routes as the router discovers them.
 
-- **Assets Explorer:** A tool to view all the images, fonts, and media files in your project and see where they are being used.
+- **Assets:** Every loaded image, font, script, and fetch — with type filters, previews, and where-used DOM mapping.
 
-- **Open Graph & SEO Setup:** Check and manage important metadata settings for social media sharing (Open Graph) and search engine optimization (SEO) directly in the app.
+- **SEO:** A live social share-card preview plus tables of your Open Graph, Twitter, and general head tags, with pass/warn checks for title/description lengths, canonical URLs, missing OG tags, `lang`, viewport, and accidental `noindex`.
 
-- **Module Discovery & Install:** Easily search for and install popular third-party Angular libraries (like NGRX, Material, etc.) right from the devtool interface.
+- **Profiler:** Record change detection to find slow spots — per-component template update counts with total/avg/max timings, app-level CD cycle stats, and highlighting for components that render slowly.
 
-- **Performance Monitoring:** Find slow spots, check how long things take to render, and spot when Angular checks for changes too often.
+- **State:** Auto-detects **NgRx or NGXS** (no extra dependency needed), renders the current store state as an expandable tree, and logs every dispatched action with timestamps.
 
-- **Module & Route Graph:** View an interactive map of your application's routes and all the modules that are loaded.
+The dev tool also remembers its UI between reloads — toggle position, open/closed panel, panel size, and the active plugin are persisted to `localStorage`.
 
-- **Quick Actions:** Use common Angular commands (like `ng generate`) or helpful tools (like clearing component state) directly from the in-app interface.
+### On the roadmap
+
+- **Module Discovery & Install:** Search for and install popular third-party Angular libraries right from the devtool interface.
+
+- **Quick Actions:** Run common Angular commands (like `ng generate`) directly from the in-app interface.
 
 ## 🛠️ Getting Started
 
-This repository holds the main code for the devtool. Here is how to use it in your Angular application:
-
 ### 1. Install It
 
-Detailed installation steps will be added here once the tool is ready to publish.
+```bash
+npm install ng-inapp-dev-tool --save-dev
+```
+
+Then register it in your `app.config.ts`:
+
+```typescript
+import { provideInAppDevTools } from "ng-inapp-dev-tool";
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    // ...
+    provideInAppDevTools({
+      editor: "vscode",
+      projectRoot: "/absolute/path/to/your/repo", // enables "Open in editor"
+    }),
+  ],
+};
+```
+
+The tool only activates in dev mode (`isDevMode()`) — production builds get empty providers and zero runtime cost.
 
 ### 2. Testing Locally
 
