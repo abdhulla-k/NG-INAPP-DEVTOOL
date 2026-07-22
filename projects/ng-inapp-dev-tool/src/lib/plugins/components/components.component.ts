@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, inject, NgZone, isSignal } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ElementRef, inject, NgZone, isSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { NG_INAPP_DEV_TOOL_CONFIG, DevToolConfig } from '../../config.token';
@@ -16,6 +16,8 @@ interface StateEntry {
     key: string;
     value: any;
     isSignal: boolean;
+    // Primitive value backed by a plain property or a writable signal — can be edited inline.
+    editable: boolean;
 }
 
 @Component({
@@ -66,9 +68,32 @@ interface StateEntry {
                                                 <span class="signal-tag" title="Reactive signal">signal</span>
                                             }
                                             <span class="state-separator">:</span>
-                                            <span class="state-value" [class]="getValueType(entry.value)">
-                                                {{ formatValue(entry.value) }}
-                                            </span>
+                                            @if (entry.editable && getValueType(entry.value) === 'boolean') {
+                                                <input type="checkbox"
+                                                       class="state-checkbox"
+                                                       [checked]="entry.value"
+                                                       (change)="commitEdit(entry, $event)" />
+                                                <span class="state-value boolean">{{ entry.value }}</span>
+                                            } @else if (entry.editable && editingKey === entry.key) {
+                                                <input type="text"
+                                                       class="state-edit-input"
+                                                       [class.number]="getValueType(entry.value) === 'number'"
+                                                       [value]="editDraft"
+                                                       (keydown.enter)="commitEdit(entry, $event)"
+                                                       (keydown.escape)="cancelEdit()"
+                                                       (blur)="commitEdit(entry, $event)" />
+                                            } @else if (entry.editable) {
+                                                <span class="state-value editable"
+                                                      [class]="getValueType(entry.value)"
+                                                      title="Click to edit"
+                                                      (click)="startEdit(entry)">
+                                                    {{ formatValue(entry.value) }}
+                                                </span>
+                                            } @else {
+                                                <span class="state-value" [class]="getValueType(entry.value)">
+                                                    {{ formatValue(entry.value) }}
+                                                </span>
+                                            }
                                         </div>
                                     }
                                 </div>
@@ -326,6 +351,29 @@ interface StateEntry {
             margin-right: 6px;
         }
         
+        .state-value.editable { cursor: pointer; border-radius: 3px; padding: 0 3px; margin: 0 -3px; }
+        .state-value.editable:hover { background: var(--ngidt-gray-700); box-shadow: 0 0 0 1px var(--ngidt-gray-600, #4b5563); }
+
+        .state-edit-input {
+            background: var(--ngidt-gray-800);
+            border: 1px solid var(--ngidt-vivid-pink);
+            border-radius: 3px;
+            color: #ce9178;
+            font-family: inherit;
+            font-size: inherit;
+            padding: 0 4px;
+            min-width: 60px;
+            max-width: 100%;
+            outline: none;
+        }
+        .state-edit-input.number { color: #b5cea8; }
+
+        .state-checkbox {
+            accent-color: var(--ngidt-vivid-pink);
+            margin: 2px 6px 0 0;
+            cursor: pointer;
+        }
+
         .state-value.string { color: #ce9178; } /* Orange/Brown */
         .state-value.number { color: #b5cea8; } /* Light green */
         .state-value.boolean { color: #569cd6; } /* Blue */
@@ -347,7 +395,13 @@ export class ComponentsComponent implements OnInit, OnDestroy {
     selectedNode: ComponentTreeNode | null = null;
     selectedNodeStateEntries: StateEntry[] = [];
 
+    // Inline-edit state. While editingKey is set, polling skips state refreshes
+    // so the re-render doesn't blow away the input mid-edit.
+    editingKey: string | null = null;
+    editDraft = '';
+
     private cdr = inject(ChangeDetectorRef);
+    private host = inject<ElementRef<HTMLElement>>(ElementRef);
     private ngZone = inject(NgZone);
     private config = inject<DevToolConfig>(NG_INAPP_DEV_TOOL_CONFIG, { optional: true });
     private pollInterval: any;
@@ -367,7 +421,7 @@ export class ComponentsComponent implements OnInit, OnDestroy {
         // Start polling for state updates (run outside angular to avoid excessive CD)
         this.ngZone.runOutsideAngular(() => {
             this.pollInterval = setInterval(() => {
-                if (this.selectedNode && this.selectedNode.instance) {
+                if (this.selectedNode && this.selectedNode.instance && this.editingKey === null) {
                     this.updateSelectedNodeState();
                 }
             }, 500);
@@ -463,6 +517,7 @@ export class ComponentsComponent implements OnInit, OnDestroy {
 
     selectNode(node: ComponentTreeNode) {
         this.selectedNode = node;
+        this.editingKey = null;
         this.updateSelectedNodeState();
     }
 
@@ -481,7 +536,9 @@ export class ComponentsComponent implements OnInit, OnDestroy {
 
                 let value = instance[key];
                 let isSig = false;
+                let writableSig = false;
                 if (isSignal(value)) {
+                    writableSig = typeof (value as any).set === 'function';
                     // Read the current value. Safe outside any reactive context — no graph dependency is created.
                     try {
                         value = (value as () => unknown)();
@@ -491,7 +548,11 @@ export class ComponentsComponent implements OnInit, OnDestroy {
                     }
                 }
 
-                entries.push({ key, value, isSignal: isSig });
+                const t = typeof value;
+                const isPrimitive = t === 'string' || t === 'number' || t === 'boolean';
+                const editable = isPrimitive && (!isSig || writableSig);
+
+                entries.push({ key, value, isSignal: isSig, editable });
             }
         } catch (e) {
             console.warn('Could not extract state fully', e);
@@ -501,6 +562,75 @@ export class ComponentsComponent implements OnInit, OnDestroy {
             this.selectedNodeStateEntries = entries;
             this.cdr.detectChanges();
         });
+    }
+
+    startEdit(entry: StateEntry) {
+        this.editingKey = entry.key;
+        // Prefill without the display quotes so the user edits the raw value.
+        this.editDraft = typeof entry.value === 'string' ? entry.value : String(entry.value);
+        this.cdr.detectChanges();
+        const input = this.host.nativeElement.querySelector<HTMLInputElement>('.state-edit-input');
+        input?.focus();
+        input?.select();
+    }
+
+    cancelEdit() {
+        this.editingKey = null;
+        this.updateSelectedNodeState();
+    }
+
+    commitEdit(entry: StateEntry, event: Event) {
+        const type = this.getValueType(entry.value);
+        // Text edits end via Enter, Escape, or blur — and removing the input on
+        // Enter/Escape fires a trailing blur. Only the first path may commit.
+        if (type !== 'boolean' && this.editingKey !== entry.key) return;
+
+        const instance = this.selectedNode?.instance;
+        if (!instance) { this.editingKey = null; return; }
+
+        let newValue: any;
+        if (type === 'boolean') {
+            newValue = (event.target as HTMLInputElement).checked;
+        } else {
+            const raw = (event.target as HTMLInputElement).value;
+            if (type === 'number') {
+                newValue = Number(raw);
+                if (raw.trim() === '' || Number.isNaN(newValue)) {
+                    // Not a valid number — treat as cancel rather than corrupting state.
+                    this.cancelEdit();
+                    return;
+                }
+            } else {
+                newValue = raw;
+            }
+        }
+
+        try {
+            const current = instance[entry.key];
+            if (isSignal(current)) {
+                if (typeof (current as any).set === 'function') {
+                    (current as any).set(newValue);
+                }
+            } else {
+                instance[entry.key] = newValue;
+            }
+            this.applyHostChanges(instance);
+        } catch (e) {
+            console.warn(`[ng-inapp-dev-tool] Failed to set "${entry.key}"`, e);
+        }
+
+        this.editingKey = null;
+        this.updateSelectedNodeState();
+    }
+
+    // Ask Angular to run CD on the edited component so plain-property writes show
+    // up even in OnPush/zoneless hosts. Signal writes don't need it, but it's harmless.
+    private applyHostChanges(instance: any) {
+        try {
+            (window as any).ng?.applyChanges?.(instance);
+        } catch {
+            // Debug API unavailable — the host's own CD will pick the change up eventually.
+        }
     }
 
     private findNodeByInstance(nodes: ComponentTreeNode[], instance: any): ComponentTreeNode | null {
