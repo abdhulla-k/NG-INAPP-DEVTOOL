@@ -22,6 +22,7 @@ import { RoutesComponent } from './plugins/routes/routes.component';
 import { AssetsComponent } from './plugins/assets/assets.component';
 import { SeoComponent } from './plugins/seo/seo.component';
 import { ProfilerComponent } from './plugins/profiler/profiler.component';
+import { StateComponent } from './plugins/state/state.component';
 
 // Setup build in plugins here
 const BUILT_IN_PLUGINS: Plugin[] = [
@@ -60,6 +61,12 @@ const BUILT_IN_PLUGINS: Plugin[] = [
         icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
         order: 5,
         component: ProfilerComponent
+    },
+    {
+        name: 'State',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
+        order: 6,
+        component: StateComponent
     }
 ];
 
