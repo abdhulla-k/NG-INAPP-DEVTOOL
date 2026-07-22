@@ -8,6 +8,13 @@ interface StateEntry {
     value: any;
 }
 
+interface ActionLogEntry {
+    type: string;
+    time: string;
+}
+
+const ACTION_LOG_LIMIT = 100;
+
 @Component({
     selector: 'ng-devtool-state',
     standalone: true,
@@ -40,6 +47,27 @@ interface StateEntry {
                             <div class="empty-state">Store state is empty.</div>
                         }
                     </div>
+
+                    @if (actionsAvailable) {
+                        <div class="state-section">
+                            <div class="section-title-row">
+                                <h4>Action log</h4>
+                                <button class="clear-btn" (click)="clearActions()" [disabled]="actionLog.length === 0">Clear</button>
+                            </div>
+                            @if (actionLog.length > 0) {
+                                <div class="action-log">
+                                    @for (action of actionLog; track $index) {
+                                        <div class="action-row">
+                                            <span class="action-time">{{ action.time }}</span>
+                                            <span class="action-type">{{ action.type }}</span>
+                                        </div>
+                                    }
+                                </div>
+                            } @else {
+                                <div class="empty-state">No actions dispatched yet.</div>
+                            }
+                        </div>
+                    }
                 </div>
             }
         </div>
@@ -108,6 +136,7 @@ interface StateEntry {
 
         .state-content { flex: 1; overflow: auto; padding: 16px; }
 
+        .state-section { margin-bottom: 24px; }
         .state-section h4 {
             margin: 0 0 10px 0;
             color: var(--ngidt-gray-400);
@@ -115,6 +144,40 @@ interface StateEntry {
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+        .section-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .clear-btn {
+            background: transparent;
+            border: 1px solid var(--ngidt-gray-700);
+            color: #cbd5e1;
+            cursor: pointer;
+            padding: 2px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+        .clear-btn:hover:not(:disabled) { color: white; background: var(--ngidt-gray-700); }
+        .clear-btn:disabled { opacity: 0.4; cursor: default; }
+
+        .action-log {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            border: 1px solid var(--ngidt-gray-700);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .action-row {
+            display: flex;
+            gap: 12px;
+            padding: 5px 10px;
+            border-bottom: 1px solid var(--ngidt-gray-800);
+        }
+        .action-row:last-child { border-bottom: none; }
+        .action-time { color: var(--ngidt-gray-500); flex-shrink: 0; }
+        .action-type { color: #fbbf24; word-break: break-all; }
 
         .json-tree {
             font-family: 'JetBrains Mono', 'Fira Code', monospace;
@@ -166,6 +229,8 @@ export class StateComponent implements OnInit, OnDestroy {
     flavor: StoreFlavor = null;
     rootEntries: StateEntry[] = [];
     expandedPaths = new Set<string>();
+    actionsAvailable = false;
+    actionLog: ActionLogEntry[] = [];
 
     private cdr = inject(ChangeDetectorRef);
     private ngZone = inject(NgZone);
@@ -173,9 +238,14 @@ export class StateComponent implements OnInit, OnDestroy {
 
     private store: any = null;
     private storeSub: any = null;
+    private actionsSub: any = null;
     private latestState: any = undefined;
     private renderedState: any = undefined;
     private pollInterval: any;
+    // Bumped by the action subscription; the 500ms poll re-renders when it moves,
+    // so actions that don't change state still show up in the log.
+    private actionVersion = 0;
+    private renderedActionVersion = 0;
 
     ngOnInit(): void {
         this.detectStore();
@@ -188,12 +258,14 @@ export class StateComponent implements OnInit, OnDestroy {
             this.storeSub = this.store.subscribe((s: any) => { this.latestState = s; });
         }
 
+        this.subscribeToActions();
+
         // Immutable stores swap the root object identity on every change, so a
         // cheap reference check is enough to know when to re-render.
         this.ngZone.runOutsideAngular(() => {
             this.pollInterval = setInterval(() => {
                 const current = this.flavor === 'ngxs' ? this.safeSnapshot() : this.latestState;
-                if (current !== this.renderedState) {
+                if (current !== this.renderedState || this.actionVersion !== this.renderedActionVersion) {
                     this.ngZone.run(() => this.applyState(current));
                 }
             }, 500);
@@ -206,6 +278,59 @@ export class StateComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         if (this.pollInterval) clearInterval(this.pollInterval);
         this.storeSub?.unsubscribe?.();
+        this.actionsSub?.unsubscribe?.();
+    }
+
+    clearActions(): void {
+        this.actionLog = [];
+        this.cdr.detectChanges();
+    }
+
+    // Wire up the action stream: NgRx exposes dispatched actions on
+    // ScannedActionsSubject; NGXS on its Actions stream (ActionContext objects,
+    // where we log only the DISPATCHED phase). Both are found by token name,
+    // same trick as detectStore().
+    private subscribeToActions(): void {
+        const records: Map<any, any> | undefined = (this.envInjector as any)?.records;
+        if (!records) return;
+
+        const wantedName = this.flavor === 'ngrx' ? 'ScannedActionsSubject' : 'Actions';
+        for (const token of records.keys()) {
+            if (typeof token !== 'function' || token.name !== wantedName) continue;
+            try {
+                const stream = this.envInjector.get(token as any) as any;
+                if (typeof stream?.subscribe !== 'function') continue;
+                this.actionsSub = stream.subscribe((emission: any) => this.recordAction(emission));
+                this.actionsAvailable = true;
+                return;
+            } catch {
+                // keep scanning
+            }
+        }
+    }
+
+    private recordAction(emission: any): void {
+        let type: string | undefined;
+        if (this.flavor === 'ngrx') {
+            type = emission?.type;
+        } else {
+            // NGXS ActionContext: { action, status } — only log the dispatch itself
+            if (emission?.status !== undefined && emission.status !== 'DISPATCHED') return;
+            const action = emission?.action ?? emission;
+            type = action?.constructor?.type ?? action?.type ?? action?.constructor?.name;
+        }
+        if (!type) return;
+
+        const now = new Date();
+        const pad = (n: number, w = 2) => String(n).padStart(w, '0');
+        this.actionLog.unshift({
+            type: String(type),
+            time: `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}.${pad(now.getMilliseconds(), 3)}`,
+        });
+        if (this.actionLog.length > ACTION_LOG_LIMIT) {
+            this.actionLog.length = ACTION_LOG_LIMIT;
+        }
+        this.actionVersion++;
     }
 
     // The host app's env injector holds provider records keyed by token. We look
@@ -246,6 +371,7 @@ export class StateComponent implements OnInit, OnDestroy {
 
     private applyState(state: any): void {
         this.renderedState = state;
+        this.renderedActionVersion = this.actionVersion;
         this.rootEntries = this.entries(state);
         this.cdr.detectChanges();
     }
