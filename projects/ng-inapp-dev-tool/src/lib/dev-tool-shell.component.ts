@@ -15,6 +15,16 @@ import { NG_INAPP_DEV_TOOL_PLUGINS, Plugin } from './plugin.token';
 import { DraggableDirective, Position } from './draggable.directive';
 import { InspectorOverlayComponent } from './inspector-overlay.component';
 
+// UI state persisted across reloads (position, open state, size, active plugin).
+interface PersistedUiState {
+    buttonPos?: Position | null;
+    open?: boolean;
+    panelSize?: { width: number; height: number } | null;
+    activePlugin?: string;
+}
+
+const UI_STATE_STORAGE_KEY = 'ng-inapp-dev-tool:ui';
+
 @Component({
     selector: 'ng-inapp-dev-tool-shell',
     standalone: true,
@@ -338,14 +348,25 @@ export class DevToolShellComponent implements OnInit {
         const injectedPlugins = inject(NG_INAPP_DEV_TOOL_PLUGINS, { optional: true }) ?? [];
         // Sort plugins by order (if provided), then fallback to original position
         this.plugins = [...injectedPlugins].sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
-        
+
+        this.savedUi = this.loadUiState();
+
         if (this.plugins.length > 0) {
-            this.activePlugin = this.plugins[0];
+            // Restore the last active plugin if it still exists, else the first one
+            this.activePlugin =
+                this.plugins.find(p => p.name === this.savedUi.activePlugin) ?? this.plugins[0];
         }
+
+        // Restore panel open/closed state
+        this.hidden = !(this.savedUi.open ?? false);
     }
 
     // Set devtool detail/plugin panel closed for default
     hidden = true;
+
+    // Last persisted UI state (loaded once at startup, patched on every change)
+    private savedUi: PersistedUiState = {};
+    private persistPosTimeout: any;
 
     // Controls flex-direction of the dragged wrapper button
     isVerticalPill = false;
@@ -367,8 +388,24 @@ export class DevToolShellComponent implements OnInit {
         this.cdr.detectChanges();
 
         setTimeout(() => {
-            const initialRect =
-                this.wrapperElement.nativeElement.getBoundingClientRect();
+            const buttonEl = this.wrapperElement.nativeElement;
+
+            // Restore the saved button position (clamped — the viewport may have shrunk)
+            const savedPos = this.savedUi.buttonPos;
+            if (savedPos) {
+                const gap = 20;
+                const x = Math.max(gap, Math.min(savedPos.x, window.innerWidth - buttonEl.offsetWidth - gap));
+                const y = Math.max(0, Math.min(savedPos.y, window.innerHeight - buttonEl.offsetHeight - gap));
+                buttonEl.style.left = `${x}px`;
+                buttonEl.style.top = `${y}px`;
+                buttonEl.style.bottom = 'auto';
+                buttonEl.style.right = 'auto';
+            }
+
+            // Restore panel size before positioning so the layout math uses the real dimensions
+            this.applySavedPanelSize();
+
+            const initialRect = buttonEl.getBoundingClientRect();
 
             // Set the position of the button initially
             this.onPositionChange({ x: initialRect.left, y: initialRect.top });
@@ -377,6 +414,7 @@ export class DevToolShellComponent implements OnInit {
 
     selectPlugin(plugin: Plugin): void {
         this.activePlugin = plugin;
+        this.persistUi({ activePlugin: plugin.name });
         this.cdr.detectChanges();
     }
 
@@ -389,12 +427,16 @@ export class DevToolShellComponent implements OnInit {
 
         // Toggle the panel
         this.hidden = !this.hidden;
+        this.persistUi({ open: !this.hidden });
 
         // Notify angular change detection to update component UI
         this.cdr.detectChanges();
 
         // Wait for a small time to update the UI
         setTimeout(() => {
+            // Re-apply the saved size on open (the container is recreated by @if)
+            this.applySavedPanelSize();
+
             // Find the position of wrapper and change the position of the container
             const currentRect =
                 this.wrapperElement.nativeElement.getBoundingClientRect();
@@ -420,6 +462,12 @@ export class DevToolShellComponent implements OnInit {
     }
 
     onPositionChange(buttonPos: Position, customWidth?: number, customHeight?: number): void {
+        // Persist the button position (debounced — this fires on every drag mousemove)
+        clearTimeout(this.persistPosTimeout);
+        this.persistPosTimeout = setTimeout(() => {
+            this.persistUi({ buttonPos });
+        }, 150);
+
         // Handle toggle button orientation (vertical pill vs horizontal) unconditionally
         const buttonEl = this.wrapperElement?.nativeElement;
         if (buttonEl) {
@@ -586,6 +634,47 @@ export class DevToolShellComponent implements OnInit {
 
     @HostListener('window:mouseup')
     onMouseUp() {
+        if (this.isResizing && this.shellContainerElement) {
+            // Resize finished — persist the final panel size
+            const el = this.shellContainerElement.nativeElement;
+            this.persistUi({ panelSize: { width: el.offsetWidth, height: el.offsetHeight } });
+        }
         this.isResizing = false;
+    }
+
+    // ---- UI state persistence -------------------------------------------------
+
+    private loadUiState(): PersistedUiState {
+        try {
+            const raw = localStorage.getItem(UI_STATE_STORAGE_KEY);
+            if (!raw) return {};
+            const parsed = JSON.parse(raw);
+            return typeof parsed === 'object' && parsed !== null ? parsed : {};
+        } catch {
+            // localStorage unavailable or corrupt payload — start fresh
+            return {};
+        }
+    }
+
+    private persistUi(patch: Partial<PersistedUiState>): void {
+        this.savedUi = { ...this.savedUi, ...patch };
+        try {
+            localStorage.setItem(UI_STATE_STORAGE_KEY, JSON.stringify(this.savedUi));
+        } catch {
+            // Quota/security errors are non-fatal — the tool just won't remember
+        }
+    }
+
+    // Apply the persisted panel size to the (freshly created) container element,
+    // clamped to the same limits the resize handler enforces.
+    private applySavedPanelSize(): void {
+        const size = this.savedUi.panelSize;
+        if (!size || this.hidden || !this.shellContainerElement) return;
+
+        const width = Math.max(400, Math.min(size.width, window.innerWidth - 40));
+        const height = Math.max(300, Math.min(size.height, window.innerHeight - 40));
+        const el = this.shellContainerElement.nativeElement;
+        this.renderer.setStyle(el, 'width', `${width}px`);
+        this.renderer.setStyle(el, 'height', `${height}px`);
     }
 }
