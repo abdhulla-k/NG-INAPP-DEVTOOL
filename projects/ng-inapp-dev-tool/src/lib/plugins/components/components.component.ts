@@ -18,6 +18,8 @@ interface StateEntry {
     isSignal: boolean;
     // Primitive value backed by a plain property or a writable signal — can be edited inline.
     editable: boolean;
+    // Classified from ɵcmp.inputs / ɵcmp.outputs metadata (dev builds only).
+    kind: 'input' | 'output' | 'state';
 }
 
 @Component({
@@ -57,44 +59,32 @@ interface StateEntry {
                 </div>
                 <div class="state-container">
                     @if (selectedNode) {
+                        @if (inputEntries.length > 0) {
+                            <div class="state-section">
+                                <h4>Inputs</h4>
+                                <div class="state-list">
+                                    @for (entry of inputEntries; track entry.key) {
+                                        <ng-container *ngTemplateOutlet="stateRowTpl; context: { $implicit: entry }"></ng-container>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        @if (outputEntries.length > 0) {
+                            <div class="state-section">
+                                <h4>Outputs</h4>
+                                <div class="state-list">
+                                    @for (entry of outputEntries; track entry.key) {
+                                        <ng-container *ngTemplateOutlet="stateRowTpl; context: { $implicit: entry }"></ng-container>
+                                    }
+                                </div>
+                            </div>
+                        }
                         <div class="state-section">
                             <h4>State</h4>
-                            @if (selectedNodeStateEntries.length > 0) {
+                            @if (stateEntries.length > 0) {
                                 <div class="state-list">
-                                    @for (entry of selectedNodeStateEntries; track entry.key) {
-                                        <div class="state-row">
-                                            <span class="state-key">{{ entry.key }}</span>
-                                            @if (entry.isSignal) {
-                                                <span class="signal-tag" title="Reactive signal">signal</span>
-                                            }
-                                            <span class="state-separator">:</span>
-                                            @if (entry.editable && getValueType(entry.value) === 'boolean') {
-                                                <input type="checkbox"
-                                                       class="state-checkbox"
-                                                       [checked]="entry.value"
-                                                       (change)="commitEdit(entry, $event)" />
-                                                <span class="state-value boolean">{{ entry.value }}</span>
-                                            } @else if (entry.editable && editingKey === entry.key) {
-                                                <input type="text"
-                                                       class="state-edit-input"
-                                                       [class.number]="getValueType(entry.value) === 'number'"
-                                                       [value]="editDraft"
-                                                       (keydown.enter)="commitEdit(entry, $event)"
-                                                       (keydown.escape)="cancelEdit()"
-                                                       (blur)="commitEdit(entry, $event)" />
-                                            } @else if (entry.editable) {
-                                                <span class="state-value editable"
-                                                      [class]="getValueType(entry.value)"
-                                                      title="Click to edit"
-                                                      (click)="startEdit(entry)">
-                                                    {{ formatValue(entry.value) }}
-                                                </span>
-                                            } @else {
-                                                <span class="state-value" [class]="getValueType(entry.value)">
-                                                    {{ formatValue(entry.value) }}
-                                                </span>
-                                            }
-                                        </div>
+                                    @for (entry of stateEntries; track entry.key) {
+                                        <ng-container *ngTemplateOutlet="stateRowTpl; context: { $implicit: entry }"></ng-container>
                                     }
                                 </div>
                             } @else {
@@ -107,6 +97,49 @@ interface StateEntry {
                 </div>
             </div>
         </div>
+
+        <!-- Shared State Row Template -->
+        <ng-template #stateRowTpl let-entry>
+            <div class="state-row">
+                <span class="state-key">{{ entry.key }}</span>
+                @if (entry.kind === 'input') {
+                    <span class="signal-tag input-tag" title="Component @Input / input()">input</span>
+                }
+                @if (entry.kind === 'output') {
+                    <span class="signal-tag output-tag" title="Component @Output / output()">output</span>
+                }
+                @if (entry.isSignal) {
+                    <span class="signal-tag" title="Reactive signal">signal</span>
+                }
+                <span class="state-separator">:</span>
+                @if (entry.editable && getValueType(entry.value) === 'boolean') {
+                    <input type="checkbox"
+                           class="state-checkbox"
+                           [checked]="entry.value"
+                           (change)="commitEdit(entry, $event)" />
+                    <span class="state-value boolean">{{ entry.value }}</span>
+                } @else if (entry.editable && editingKey === entry.key) {
+                    <input type="text"
+                           class="state-edit-input"
+                           [class.number]="getValueType(entry.value) === 'number'"
+                           [value]="editDraft"
+                           (keydown.enter)="commitEdit(entry, $event)"
+                           (keydown.escape)="cancelEdit()"
+                           (blur)="commitEdit(entry, $event)" />
+                } @else if (entry.editable) {
+                    <span class="state-value editable"
+                          [class]="getValueType(entry.value)"
+                          title="Click to edit"
+                          (click)="startEdit(entry)">
+                        {{ formatValue(entry.value) }}
+                    </span>
+                } @else {
+                    <span class="state-value" [class]="getValueType(entry.value)">
+                        {{ formatValue(entry.value) }}
+                    </span>
+                }
+            </div>
+        </ng-template>
 
         <!-- Recursive Tree Node Template -->
         <ng-template #treeNodeTpl let-node>
@@ -328,6 +361,17 @@ interface StateEntry {
             font-family: 'Inter', sans-serif;
             font-weight: 600;
         }
+        .signal-tag.input-tag {
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.12);
+        }
+        .signal-tag.output-tag {
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.12);
+        }
+        .state-section + .state-section {
+            margin-top: 20px;
+        }
         .open-btn {
             background: transparent;
             border: 1px solid var(--ngidt-gray-700);
@@ -394,6 +438,9 @@ export class ComponentsComponent implements OnInit, OnDestroy {
     treeNodes: ComponentTreeNode[] = [];
     selectedNode: ComponentTreeNode | null = null;
     selectedNodeStateEntries: StateEntry[] = [];
+    inputEntries: StateEntry[] = [];
+    outputEntries: StateEntry[] = [];
+    stateEntries: StateEntry[] = [];
 
     // Inline-edit state. While editingKey is set, polling skips state refreshes
     // so the re-render doesn't blow away the input mid-edit.
@@ -456,6 +503,9 @@ export class ComponentsComponent implements OnInit, OnDestroy {
             } else {
                 this.selectedNode = null;
                 this.selectedNodeStateEntries = [];
+                this.inputEntries = [];
+                this.outputEntries = [];
+                this.stateEntries = [];
             }
         }
 
@@ -521,11 +571,35 @@ export class ComponentsComponent implements OnInit, OnDestroy {
         this.updateSelectedNodeState();
     }
 
+    // Property names that back the component's inputs/outputs, read from the
+    // dev-mode component def. Handles both metadata shapes: plain
+    // publicName -> propName strings and [flags, propName, transform] arrays.
+    private getIoPropertyNames(instance: any): { inputs: Set<string>; outputs: Set<string> } {
+        const inputs = new Set<string>();
+        const outputs = new Set<string>();
+        const def = (instance?.constructor as any)?.ɵcmp;
+        try {
+            for (const publicName of Object.keys(def?.inputs ?? {})) {
+                const v = def.inputs[publicName];
+                const prop = typeof v === 'string' ? v : (Array.isArray(v) ? v.find((x: any) => typeof x === 'string') : undefined);
+                if (prop) inputs.add(prop);
+            }
+            for (const publicName of Object.keys(def?.outputs ?? {})) {
+                const v = def.outputs[publicName];
+                if (typeof v === 'string') outputs.add(v);
+            }
+        } catch {
+            // Malformed/unknown def shape — treat everything as plain state.
+        }
+        return { inputs, outputs };
+    }
+
     private updateSelectedNodeState() {
         if (!this.selectedNode) return;
 
         const instance = this.selectedNode.instance;
         const entries: StateEntry[] = [];
+        const io = this.getIoPropertyNames(instance);
 
         // Extract public properties (skip private/angular internal)
         try {
@@ -551,8 +625,10 @@ export class ComponentsComponent implements OnInit, OnDestroy {
                 const t = typeof value;
                 const isPrimitive = t === 'string' || t === 'number' || t === 'boolean';
                 const editable = isPrimitive && (!isSig || writableSig);
+                const kind: StateEntry['kind'] =
+                    io.inputs.has(key) ? 'input' : (io.outputs.has(key) ? 'output' : 'state');
 
-                entries.push({ key, value, isSignal: isSig, editable });
+                entries.push({ key, value, isSignal: isSig, editable, kind });
             }
         } catch (e) {
             console.warn('Could not extract state fully', e);
@@ -560,6 +636,9 @@ export class ComponentsComponent implements OnInit, OnDestroy {
 
         this.ngZone.run(() => {
             this.selectedNodeStateEntries = entries;
+            this.inputEntries = entries.filter(e => e.kind === 'input');
+            this.outputEntries = entries.filter(e => e.kind === 'output');
+            this.stateEntries = entries.filter(e => e.kind === 'state');
             this.cdr.detectChanges();
         });
     }
