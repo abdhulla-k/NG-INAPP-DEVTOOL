@@ -15,6 +15,14 @@ interface ActionLogEntry {
 
 const ACTION_LOG_LIMIT = 100;
 
+// Dev bundlers rewrite class names when re-exporting them (esbuild/Vite emit
+// `Store = class _Store …`, and dedupe collisions as `Store2`), so token.name
+// can't be compared literally. Strip the leading underscores and trailing
+// digits before matching.
+function normalizeTokenName(name: string | undefined): string {
+    return (name ?? '').replace(/^_+/, '').replace(/\d+$/, '');
+}
+
 @Component({
     selector: 'ng-devtool-state',
     standalone: true,
@@ -291,21 +299,35 @@ export class StateComponent implements OnInit, OnDestroy {
     // where we log only the DISPATCHED phase). Both are found by token name,
     // same trick as detectStore().
     private subscribeToActions(): void {
-        const records: Map<any, any> | undefined = (this.envInjector as any)?.records;
-        if (!records) return;
-
         const wantedName = this.flavor === 'ngrx' ? 'ScannedActionsSubject' : 'Actions';
-        for (const token of records.keys()) {
-            if (typeof token !== 'function' || token.name !== wantedName) continue;
-            try {
-                const stream = this.envInjector.get(token as any) as any;
-                if (typeof stream?.subscribe !== 'function') continue;
-                this.actionsSub = stream.subscribe((emission: any) => this.recordAction(emission));
-                this.actionsAvailable = true;
-                return;
-            } catch {
-                // keep scanning
+        for (const [records, injector] of this.injectorRecords()) {
+            for (const token of records.keys()) {
+                if (typeof token !== 'function' || normalizeTokenName(token.name) !== wantedName) continue;
+                try {
+                    const stream = injector.get(token as any) as any;
+                    if (typeof stream?.subscribe !== 'function') continue;
+                    this.actionsSub = stream.subscribe((emission: any) => this.recordAction(emission));
+                    this.actionsAvailable = true;
+                    return;
+                } catch {
+                    // keep scanning
+                }
             }
+        }
+    }
+
+    // inject(EnvironmentInjector) in a standalone component returns the
+    // component's own standalone injector, whose handful of records never
+    // includes the host app's providers — the store lives in the root
+    // injector further up. Walk the parent chain and scan every records Map
+    // on the way.
+    private *injectorRecords(): Generator<[Map<any, any>, EnvironmentInjector]> {
+        let injector: any = this.envInjector;
+        while (injector) {
+            if (injector.records instanceof Map) {
+                yield [injector.records, injector];
+            }
+            injector = injector.parent;
         }
     }
 
@@ -337,26 +359,25 @@ export class StateComponent implements OnInit, OnDestroy {
     // for a class token literally named "Store" and duck-type which library it
     // is — this keeps NgRx/NGXS out of our dependency tree entirely.
     private detectStore(): void {
-        const records: Map<any, any> | undefined = (this.envInjector as any)?.records;
-        if (!records) return;
-
-        for (const token of records.keys()) {
-            if (typeof token !== 'function' || token.name !== 'Store') continue;
-            try {
-                const store = this.envInjector.get(token as any);
-                if (!store || typeof store.dispatch !== 'function') continue;
-                if (typeof store.snapshot === 'function') {
-                    this.flavor = 'ngxs';
-                    this.store = store;
-                    return;
+        for (const [records, injector] of this.injectorRecords()) {
+            for (const token of records.keys()) {
+                if (typeof token !== 'function' || normalizeTokenName(token.name) !== 'Store') continue;
+                try {
+                    const store = injector.get(token as any);
+                    if (!store || typeof store.dispatch !== 'function') continue;
+                    if (typeof store.snapshot === 'function') {
+                        this.flavor = 'ngxs';
+                        this.store = store;
+                        return;
+                    }
+                    if (typeof store.subscribe === 'function' && typeof store.select === 'function') {
+                        this.flavor = 'ngrx';
+                        this.store = store;
+                        return;
+                    }
+                } catch {
+                    // Token resolution failed — keep scanning
                 }
-                if (typeof store.subscribe === 'function' && typeof store.select === 'function') {
-                    this.flavor = 'ngrx';
-                    this.store = store;
-                    return;
-                }
-            } catch {
-                // Token resolution failed — keep scanning
             }
         }
     }
