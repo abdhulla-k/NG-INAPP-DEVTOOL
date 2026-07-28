@@ -1,7 +1,7 @@
 {
   "name": "ng-inapp-dev-tool",
-  "version": "0.0.5",
-  "description": "In-app developer tools for Angular — inspect components, routes, signals, and assets directly inside your running app. Inspired by Nuxt DevTools.",
+  "version": "0.1.0",
+  "description": "In-app developer tools for Angular — inspect and edit component state, browse routes, profile change detection, audit SEO tags, and watch NgRx/NGXS state directly inside your running app. Inspired by Nuxt DevTools.",
   "keywords": [
     "angular",
     "devtools",
@@ -12,7 +12,13 @@
     "components",
     "routes",
     "signals",
-    "assets"
+    "assets",
+    "seo",
+    "profiler",
+    "change-detection",
+    "state",
+    "ngrx",
+    "ngxs"
   ],
   "author": "abdhulla-k",
   "license": "MIT",
