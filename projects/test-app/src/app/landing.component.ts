@@ -81,7 +81,7 @@ interface Feature {
         <section id="features" class="features">
             <div class="container">
                 <div class="section-head">
-                    <h2>Five plugins in the box.</h2>
+                    <h2>Seven plugins in the box.</h2>
                     <p>Every built-in plugin works the moment you install. Add your own with the same API.</p>
                 </div>
 
