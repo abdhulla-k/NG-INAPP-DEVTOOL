@@ -91,6 +91,8 @@ export const appConfig: ApplicationConfig = {
 
 If you provide a plugin with the same `name` as a built-in plugin, the custom plugin will _not_ override the built-in one. Ensure your plugin names are unique to avoid conflicts.
 
+The reserved built-in plugin names are: **Overview**, **Components**, **Routes**, **Assets**, **SEO**, **Profiler**, and **State**.
+
 ## Future Core Updates
 
 If you are modifying the core dev tool structure (`dev-tool-shell` or `providers.ts`), please ensure that:

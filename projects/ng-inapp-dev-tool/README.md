@@ -1,6 +1,6 @@
 # ng-inapp-dev-tool
 
-In-app developer tools for Angular — inspect components, routes, signals, and assets directly inside your running app. Inspired by [Nuxt DevTools](https://devtools.nuxt.com).
+In-app developer tools for Angular — inspect and edit component state, browse routes, profile change detection, audit SEO tags, and watch NgRx/NGXS state directly inside your running app. Inspired by [Nuxt DevTools](https://devtools.nuxt.com).
 
 The dev tool mounts itself into your app at startup, gates on `isDevMode()`, and is tree-shaken out of production builds. Zero runtime cost when shipped.
 
@@ -60,10 +60,16 @@ provideInAppDevTools({
 | Plugin | What it does |
 | --- | --- |
 | **Overview** | Landing dashboard with Angular version, plugin count, and an at-a-glance app summary. |
-| **Components** | Live tree of every Angular component on the page. Inspect state, unwrap signals (signals are auto-detected via `isSignal()` and rendered as their underlying value), and jump to source. Hover a node to outline its host element in the page. |
-| **Routes** | Every registered route, the active match (parameter-aware), guards, and lazy chunks. One-click navigation for static routes; parameterized routes are flagged and disabled. |
+| **Components** | Live tree of every Angular component on the page. Inspect state with signals unwrapped (auto-detected via `isSignal()`), see **Inputs and Outputs** in their own badged sections (both `@Input()`/`@Output()` and `input()`/`output()` styles), and **edit state inline** — strings and numbers are click-to-edit, booleans toggle with a checkbox, writable signals go through `.set()`. Changes render in your app immediately. Hover a node to outline its host element in the page. |
+| **Routes** | Every registered route, the active match (parameter-aware), guards, and lazy chunks — plus an **interactive route tree** that highlights the active branch live, marks redirects, and picks up lazily loaded child routes as the router discovers them. One-click navigation for static routes. |
 | **Assets** | Every loaded image, font, script, stylesheet, and fetch — sourced from the Performance API with live updates via `PerformanceObserver`. Type filters, image previews, and on-demand DOM scanning to find which elements reference each asset. |
-| **Inspector** | Point-and-click any element in the page to reveal its component name and source path. Walk up to the parent component, copy a precise selector + component tree (great for pasting into AI agents), or jump to source. |
+| **SEO** | Live social share-card preview plus tables of your Open Graph, Twitter, and general head tags, with pass/warn checks for title/description lengths, canonical URLs, missing OG tags, `lang`, viewport, and accidental `noindex`. |
+| **Profiler** | Record change detection to find slow spots — per-component template update counts with total/avg/max timings, app-level CD cycle stats, and highlighting for components that render slowly. |
+| **State** | Auto-detects **NgRx or NGXS** (no extra dependency needed), renders the current store state as an expandable tree, and logs every dispatched action with timestamps. |
+
+Beyond the plugin panel, there's also a point-and-click **Inspector**: hover any element in the page to reveal its component name and source path, walk up to the parent component, copy a precise selector + component tree (great for pasting into AI agents), or jump to source.
+
+The dev tool also remembers its UI between reloads — toggle position, open/closed panel, panel size, and the active plugin are persisted to `localStorage`.
 
 ## Custom plugins
 
