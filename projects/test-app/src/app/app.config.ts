@@ -1,5 +1,8 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { provideStore } from '@ngrx/store';
+
+import { demoReducers } from './store/demo.store';
 
 import { provideInAppDevTools, Plugin } from 'ng-inapp-dev-tool';
 // To test locally, create a `local.config.ts` file in this folder (it is git-ignored)
@@ -18,6 +21,7 @@ export const appConfig: ApplicationConfig = {
     providers: [
         provideZoneChangeDetection({ eventCoalescing: true }),
         provideRouter(routes),
+        provideStore(demoReducers),
         provideClientHydration(withEventReplay()),
         provideInAppDevTools({
             plugins: devToolPlugins,

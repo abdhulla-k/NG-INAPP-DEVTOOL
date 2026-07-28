@@ -1,6 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { Store } from '@ngrx/store';
 import { DevtoolMockComponent } from './devtool-mock.component';
+import * as demo from './store/demo.store';
 
 interface Feature {
     name: string;
@@ -28,6 +30,7 @@ interface Feature {
                     <a href="#features" (click)="closeNav()">Features</a>
                     <a href="#install" (click)="closeNav()">Install</a>
                     <a href="#plugins" (click)="closeNav()">Plugins</a>
+                    <a href="#state-demo" (click)="closeNav()">Live demo</a>
                     <a class="github" href="https://github.com/abdhulla-k/NG-INAPP-DEVTOOL" target="_blank" rel="noopener" (click)="closeNav()">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-1.94c-3.2.7-3.87-1.54-3.87-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18a11.05 11.05 0 0 1 5.79 0c2.21-1.49 3.18-1.18 3.18-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.4-5.25 5.69.41.36.77 1.06.77 2.13v3.16c0 .31.21.67.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
                         GitHub
@@ -146,6 +149,58 @@ interface Feature {
             </div>
         </section>
 
+        <!-- Live store demo -->
+        <section id="state-demo" class="state-demo">
+            <div class="container state-grid">
+                <div class="state-copy">
+                    <div class="eyebrow"><span class="dot"></span> Try it live</div>
+                    <h2>Watch the State plugin react.</h2>
+                    <p>
+                        This page runs a real <strong>NgRx</strong> store. Open the dev
+                        tool with the floating button in the corner, pick the
+                        <strong>State</strong> plugin, then press the buttons here —
+                        the state tree and the action log update as you click.
+                    </p>
+                </div>
+                <div class="demo-card">
+                    <div class="demo-row">
+                        <div class="demo-info">
+                            <span class="demo-label mono">counter</span>
+                            <span class="demo-value mono">{{ counter() }}</span>
+                        </div>
+                        <div class="demo-actions">
+                            <button class="demo-btn" (click)="decrementCounter()">−</button>
+                            <button class="demo-btn" (click)="incrementCounter()">+</button>
+                            <button class="demo-btn" (click)="resetCounter()">Reset</button>
+                        </div>
+                    </div>
+                    <div class="demo-row">
+                        <div class="demo-info">
+                            <span class="demo-label mono">preferences.theme</span>
+                            <span class="demo-value mono">{{ theme() }}</span>
+                        </div>
+                        <div class="demo-actions">
+                            <button class="demo-btn" (click)="toggleTheme()">Toggle theme</button>
+                        </div>
+                    </div>
+                    <div class="demo-row">
+                        <div class="demo-info">
+                            <span class="demo-label mono">preferences.notifications</span>
+                            <span class="demo-value mono">{{ notifications().unread }} unread</span>
+                        </div>
+                        <div class="demo-actions">
+                            <button class="demo-btn" (click)="sendNotification()" [disabled]="!notifications().enabled">Send one</button>
+                            <button class="demo-btn" (click)="markAllRead()" [disabled]="notifications().unread === 0">Mark read</button>
+                            <label class="demo-toggle">
+                                <input type="checkbox" [checked]="notifications().enabled" (change)="onNotificationsEnabledChange($event)" />
+                                enabled
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Footer -->
         <footer class="site-footer">
             <div class="container footer-grid">
@@ -172,7 +227,9 @@ interface Feature {
                     <span class="muted">Components</span>
                     <span class="muted">Routes</span>
                     <span class="muted">Assets</span>
-                    <span class="muted">Inspector</span>
+                    <span class="muted">SEO</span>
+                    <span class="muted">Profiler</span>
+                    <span class="muted">State</span>
                 </div>
             </div>
             <div class="footer-bottom container">
@@ -618,6 +675,70 @@ interface Feature {
         }
 
         /* ─── Mobile ─── */
+        /* ─── State demo ─── */
+        .state-demo {
+            padding: var(--section-pad-y) 0;
+            border-top: 1px solid var(--gray-800);
+        }
+        .state-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.1fr;
+            gap: 56px;
+            align-items: center;
+        }
+        .state-grid > * { min-width: 0; }
+        .state-copy h2 { text-align: left; }
+        .state-copy p {
+            color: var(--gray-400);
+            font-size: 16px;
+            line-height: 1.65;
+        }
+        .state-copy strong { color: white; font-weight: 600; }
+        .demo-card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+            border: 1px solid var(--gray-800);
+            border-radius: 12px;
+            padding: 8px 24px;
+        }
+        .demo-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding: 16px 0;
+        }
+        .demo-row + .demo-row { border-top: 1px solid var(--gray-800); }
+        .demo-info { display: flex; flex-direction: column; gap: 4px; }
+        .demo-label { color: var(--gray-400); font-size: 12px; }
+        .demo-value { color: white; font-size: 18px; font-weight: 600; }
+        .demo-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .demo-btn {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--gray-800);
+            border-radius: 8px;
+            color: white;
+            font: inherit;
+            font-size: 13px;
+            padding: 7px 14px;
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+        .demo-btn:hover:not(:disabled) {
+            border-color: rgba(var(--pink-glow), 0.35);
+            background: rgba(var(--pink-glow), 0.08);
+        }
+        .demo-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .demo-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--gray-400);
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .demo-toggle input { accent-color: var(--vivid-pink); }
+
         @media (max-width: 768px) {
             .hamburger { display: inline-flex; }
             .nav-links {
@@ -653,7 +774,8 @@ interface Feature {
         @media (max-width: 640px) {
             :root { --section-pad-y: var(--section-pad-y-mobile); }
             .hero { padding: 56px 0 48px; }
-            .features, .install, .plugins { padding: 64px 0; }
+            .features, .install, .plugins, .state-demo { padding: 64px 0; }
+            .state-grid { grid-template-columns: 1fr; gap: 28px; }
             .footer-grid { grid-template-columns: 1fr; gap: 32px; }
             .footer-bottom { flex-direction: column; gap: 6px; }
             .code { padding: 16px; }
@@ -671,6 +793,23 @@ export class LandingComponent {
 
     toggleNav() { this.navOpen.update(v => !v); }
     closeNav() { this.navOpen.set(false); }
+
+    // NgRx demo store — gives the dev tool's State plugin something real to show.
+    private store = inject<Store<demo.DemoState>>(Store);
+    counter = this.store.selectSignal(demo.selectCounter);
+    theme = this.store.selectSignal(demo.selectTheme);
+    notifications = this.store.selectSignal(demo.selectNotifications);
+
+    incrementCounter() { this.store.dispatch(demo.increment()); }
+    decrementCounter() { this.store.dispatch(demo.decrement()); }
+    resetCounter() { this.store.dispatch(demo.reset()); }
+    toggleTheme() { this.store.dispatch(demo.toggleTheme()); }
+    sendNotification() { this.store.dispatch(demo.notificationReceived()); }
+    markAllRead() { this.store.dispatch(demo.markAllRead()); }
+    onNotificationsEnabledChange(event: Event) {
+        const enabled = (event.target as HTMLInputElement).checked;
+        this.store.dispatch(demo.setNotificationsEnabled({ enabled }));
+    }
 
     // Wrap an icon's path data in a full <svg> and trust it for [innerHTML].
     // Bound via a <span> wrapper, not <svg> directly — Angular's SSR renderer
