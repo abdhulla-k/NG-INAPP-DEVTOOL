@@ -35,6 +35,10 @@ interface Feature {
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-1.94c-3.2.7-3.87-1.54-3.87-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18a11.05 11.05 0 0 1 5.79 0c2.21-1.49 3.18-1.18 3.18-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.4-5.25 5.69.41.36.77 1.06.77 2.13v3.16c0 .31.21.67.8.56C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
                         GitHub
                     </a>
+                    <a class="npm" href="https://www.npmjs.com/package/ng-inapp-dev-tool" target="_blank" rel="noopener" (click)="closeNav()">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M0 7.334v8h6.666v1.332H12v-1.332h12v-8H0zm6.666 6.664H5.334v-4H3.999v4H1.335V8.667h5.331v5.331zm4 0v1.336H8.001V8.667h5.334v5.332h-2.669v-.001zm12.001 0h-1.33v-4h-1.336v4h-1.335v-4h-1.33v4h-2.671V8.667h8.002v5.331zM10.665 10H12v2.667h-1.335V10z"/></svg>
+                        npm
+                    </a>
                 </nav>
 
                 <button class="hamburger" (click)="toggleNav()" [attr.aria-expanded]="navOpen()" aria-label="Toggle menu">
@@ -282,7 +286,8 @@ interface Feature {
             color: var(--gray-400);
         }
         .nav-links a:hover { color: white; }
-        .nav-links .github {
+        .nav-links .github,
+        .nav-links .npm {
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -291,10 +296,12 @@ interface Feature {
             border-radius: 6px;
             color: white;
         }
-        .nav-links .github:hover {
+        .nav-links .github:hover,
+        .nav-links .npm:hover {
             border-color: var(--vivid-pink);
             background: rgba(var(--pink-glow), 0.08);
         }
+        .nav-links .npm { margin-left: -16px; }
 
         .hamburger {
             display: none;
@@ -761,10 +768,12 @@ interface Feature {
                 border-bottom: 1px solid var(--gray-800);
             }
             .nav-links a:last-child { border-bottom: none; }
-            .nav-links .github {
+            .nav-links .github,
+            .nav-links .npm {
                 margin-top: 10px;
                 justify-content: center;
             }
+            .nav-links .npm { margin-left: 0; }
             .topnav.open .nav-links {
                 transform: translateY(0);
                 visibility: visible;
