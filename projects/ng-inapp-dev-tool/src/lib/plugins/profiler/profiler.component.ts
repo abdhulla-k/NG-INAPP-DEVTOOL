@@ -334,14 +334,15 @@ export class ProfilerComponent implements OnInit, OnDestroy {
         this.recording = true;
         this.recordingStartedAt = performance.now();
 
-        // Refresh the table twice a second while recording, outside the zone so
-        // the polling itself doesn't trigger host-app CD.
+        // Refresh the table twice a second while recording. Must stay fully
+        // outside the zone: entering it (ngZone.run) triggers a host-app tick,
+        // which the profiler would then measure — self-inflicted CD cycles on
+        // an idle app. The panel is a detached view, so detectChanges() alone
+        // refreshes it.
         this.ngZone.runOutsideAngular(() => {
             this.uiInterval = setInterval(() => {
-                this.ngZone.run(() => {
-                    this.syncRows();
-                    this.cdr.detectChanges();
-                });
+                this.syncRows();
+                this.cdr.detectChanges();
             }, 500);
         });
         this.cdr.detectChanges();
