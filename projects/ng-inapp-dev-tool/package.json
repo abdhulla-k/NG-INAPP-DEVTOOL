@@ -1,6 +1,6 @@
 {
   "name": "ng-inapp-dev-tool",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "In-app developer tools for Angular — inspect and edit component state, browse routes, profile change detection, audit SEO tags, and watch NgRx/NGXS state directly inside your running app. Inspired by Nuxt DevTools.",
   "keywords": [
     "angular",
